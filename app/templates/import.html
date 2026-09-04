@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Excel Import{% endblock %}
+{% block content %}
+<section class="panel">
+  <h2>Import Excel Tracker</h2>
+  <form id="importForm" class="stack">
+    <label>Workbook<input type="file" name="file" accept=".xlsx,.xlsm" required></label>
+    <label>Mode<select name="mode"><option value="merge">Merge</option><option value="replace">Replace</option><option value="add">Add New Records</option></select></label>
+    <div class="actions"><button type="button" onclick="previewImport()">Preview</button><button type="submit">Import</button></div>
+  </form>
+  <pre id="importPreview" class="preview"></pre>
+</section>
+<section class="panel"><h2>Import History</h2><div class="table-wrap"><table><thead><tr><th>File</th><th>Mode</th><th>Status</th><th>Success</th><th>Rejected</th><th>Errors</th></tr></thead><tbody>{% for item in imports %}<tr><td>{{ item.file_name }}</td><td>{{ item.mode }}</td><td>{{ item.status }}</td><td>{{ item.successful_rows }}</td><td>{{ item.rejected_rows }}</td><td><a href="/api/imports/{{ item.id }}/errors.csv">CSV</a></td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}

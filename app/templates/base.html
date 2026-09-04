@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page|default('dashboard')|title }} · Team Tracker</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body data-view="{{ view|default(page|default('dashboard')) }}">
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">Team Tracker</div>
+      <nav>
+        <a class="{{ 'active' if page == 'dashboard' else '' }}" href="/">Dashboard</a>
+        <a class="{{ 'active' if page == 'monthly' else '' }}" href="/monthly">Monthly Tracker</a>
+        <a class="{{ 'active' if page == 'weekly' else '' }}" href="/weekly">Weekly Tracker</a>
+        <a class="{{ 'active' if page == 'utilization' else '' }}" href="/utilization">Utilization</a>
+        <a class="{{ 'active' if page == 'tracker' else '' }}" href="/tracker">Tracker</a>
+        <a class="{{ 'active' if page == 'import' else '' }}" href="/import">Import</a>
+        {% if 'view_audit_log' in permissions %}<a class="{{ 'active' if page == 'audit' else '' }}" href="/audit">Audit</a>{% endif %}
+        {% if 'manage_users' in permissions %}<a class="{{ 'active' if page == 'admin' else '' }}" href="/admin">Admin Console</a>{% endif %}
+      </nav>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">DQ testing operations</p>
+          <h1>{% block title %}Dashboard{% endblock %}</h1>
+        </div>
+        <div class="userbox">
+          <span>{{ user.display_name }}</span>
+          <form method="post" action="/logout"><button class="ghost" type="submit">Sign out</button></form>
+        </div>
+      </header>
+      <section id="notice" class="notice" hidden></section>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

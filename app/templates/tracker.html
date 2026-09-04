@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Tracker Records{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <input id="trackerSearch" placeholder="Search tickets, testers, comments" oninput="filterTable('trackerSearch','trackerTable')">
+  <label>Tester<select id="trackerTesterFilter" onchange="refreshTracker()"><option value="">All testers</option>{% for tester in filters.testers %}<option>{{ tester }}</option>{% endfor %}</select></label>
+  <label>Start date<input id="trackerStartDateFilter" type="date" onchange="refreshTracker()"></label>
+  <label>End date<input id="trackerEndDateFilter" type="date" onchange="refreshTracker()"></label>
+  {% if 'export_data' in permissions %}<a class="button" href="/api/exports/tracker.csv">Export CSV</a>{% endif %}
+</div>
+<div class="tracker-graphs grid-two">
+  <section class="panel wide-panel"><h2>Ticket Status</h2><div id="trackerStatusChart" class="status-chart"></div></section>
+</div>
+<div class="table-wrap">
+<table id="trackerTable">
+  <thead><tr><th>Ticket ID</th><th>Tester</th><th>Status</th><th>Age</th><th>Started</th><th>Ended</th><th>Zephyr</th><th>Comments</th><th>Version</th></tr></thead>
+  <tbody>{% for record in records %}<tr data-tester="{{ record.tester_name_raw or '' }}" data-status="{{ record.status }}" data-start-date="{{ record.date_started or '' }}" data-end-date="{{ record.date_ended or '' }}"><td>{{ record.ticket_id }}</td><td>{{ record.tester_name_raw or '' }}</td><td><span class="pill">{{ record.status }}</span></td><td>{% if record.date_started %}{{ ((record.date_ended or today) - record.date_started).days }}d{% else %}-{% endif %}</td><td>{{ record.date_started or '' }}</td><td>{{ record.date_ended or '' }}</td><td>{{ record.zephyr_upload or '' }}</td><td class="comment">{{ record.comments or '' }}</td><td>{{ record.version }}</td></tr>{% endfor %}</tbody>
+</table>
+</div>
+{% endblock %}

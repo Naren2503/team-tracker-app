@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Admin Console{% endblock %}
+{% block content %}
+<div class="grid-two">
+<section class="panel"><h2>Create User</h2><form id="userForm" class="stack"><label>Email<input name="email" type="email" required></label><label>Name<input name="display_name" required></label><label>Password<input name="password" type="password" minlength="12" required></label><label>Role ID<input name="role_id" type="number" value="2" required></label><button>Create user</button></form></section>
+<section class="panel"><h2>Roles</h2><p>Default roles are Admin, Editor, and Viewer. Role changes are enforced through backend permissions; users cannot change their own role through the admin API.</p><button onclick="loadUsers()">Load users</button><pre id="adminOutput" class="preview"></pre></section>
+</div>
+{% endblock %}

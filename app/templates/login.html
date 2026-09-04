@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · Team Tracker</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="login-screen">
+  <main class="login-card">
+    <p class="eyebrow">Secure team access</p>
+    <h1>Team Tracker</h1>
+    <form method="post" action="/login" class="stack">
+      {% if error %}<div class="error">{{ error }}</div>{% endif %}
+      <label>Email<input name="email" type="email" autocomplete="email" required></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+      <button type="submit">Sign in</button>
+    </form>
+  </main>
+</body>
+</html>
