@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: team-tracker-app
+    name: naren2503-team-tracker
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
@@ -10,9 +10,3 @@ services:
         generateValue: true
       - key: DATABASE_URL
         sync: false
-      - key: SEED_ADMIN_EMAIL
-        sync: false
-      - key: SEED_ADMIN_PASSWORD
-        sync: false
-      - key: SEED_ADMIN_NAME
-        value: Initial Admin
