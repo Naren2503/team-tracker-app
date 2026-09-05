@@ -19,6 +19,16 @@ SOURCE_TABLES = {
     "Daily Report - BT": ["TICKET ID", "TESTER", "TASK", "PRIORITY", "DATE", "Passed - TC", "Passed - Steps", "Failed - TC", "Failed - Steps", "DAILY COMMENTS"],
 }
 
+SHEET_ALIASES = {
+    "dq task tracker": "DQ Task Tracker",
+    "daily report - ft": "Daily Report - FT",
+    "daily report-ft": "Daily Report - FT",
+    "daily report ft": "Daily Report - FT",
+    "daily report - bt": "Daily Report - BT",
+    "daily report-bt": "Daily Report - BT",
+    "daily report bt": "Daily Report - BT",
+}
+
 @dataclass
 class ParsedRow:
     sheet: str
@@ -109,13 +119,26 @@ def find_header(ws, expected: list[str]) -> tuple[int, dict[str, int]] | None:
 
 
 def find_grid_header(grid: list[list[Any]], expected: list[str]) -> tuple[int, dict[str, int]] | None:
-    expected_norm = {name.lower(): name for name in expected}
-    for row_idx, row in enumerate(grid[:20]):
+    expected_norm = {name.lower().replace(" ", "").replace("-", "").replace("(", "").replace(")", "").replace("_", ""): name for name in expected}
+    for row_idx, row in enumerate(grid[:25]):
         mapping: dict[str, int] = {}
         for col_idx, cell in enumerate(row):
-            value = clean_text(cell)
-            if value and value.lower() in expected_norm:
-                mapping[expected_norm[value.lower()]] = col_idx
+            raw_text = clean_text(cell)
+            if not raw_text:
+                continue
+            normalized_cell = raw_text.lower().replace(" ", "").replace("-", "").replace("(", "").replace(")", "").replace("_", "")
+            # Direct match
+            if normalized_cell in expected_norm:
+                mapping[expected_norm[normalized_cell]] = col_idx
+            # Fuzzy match for headers like "work log (hrs)" / "work log" / "hours" / "worklog"
+            elif "worklog" in normalized_cell or "hours" in normalized_cell or "loggedhours" in normalized_cell:
+                mapping["work log (hrs)"] = col_idx
+            elif "ticketid" in normalized_cell or "ticket" in normalized_cell:
+                mapping["Ticket ID" if "Ticket ID" in expected else "TICKET ID"] = col_idx
+            elif "tester" in normalized_cell or "resource" in normalized_cell:
+                mapping["Tester" if "Tester" in expected else "TESTER"] = col_idx
+            elif normalized_cell == "date" or normalized_cell == "workdate":
+                mapping["DATE"] = col_idx
         if len(mapping) >= max(3, min(len(expected), 5)):
             return row_idx, mapping
     return None
@@ -123,10 +146,17 @@ def find_grid_header(grid: list[list[Any]], expected: list[str]) -> tuple[int, d
 
 def parse_grid_data(sheets_data: dict[str, list[list[Any]]]) -> list[ParsedRow]:
     rows: list[ParsedRow] = []
+    # Normalize keys in sheets_data
+    normalized_input: dict[str, list[list[Any]]] = {}
+    for key, val in sheets_data.items():
+        clean_key = key.strip()
+        alias = SHEET_ALIASES.get(clean_key.lower(), clean_key)
+        normalized_input[alias] = val
+
     for sheet, expected in SOURCE_TABLES.items():
-        if sheet not in sheets_data:
+        if sheet not in normalized_input:
             continue
-        grid = sheets_data[sheet]
+        grid = normalized_input[sheet]
         if not grid:
             continue
         header = find_grid_header(grid, expected)
