@@ -192,7 +192,7 @@ def parse_grid_data(sheets_data: dict[str, list[list[Any]]]) -> list[ParsedRow]:
                         errors.append(f"Missing required field: {field}")
             else:
                 payload = {
-                    "ticket_id_raw": clean_text(raw.get("TICKET ID")),
+                    "ticket_id_raw": clean_text(raw.get("TICKET ID")) or "GENERAL",
                     "workstream": "BT" if sheet.endswith("BT") else "FT",
                     "tester_name_raw": clean_text(raw.get("TESTER")),
                     "task": clean_text(raw.get("TASK")),
@@ -205,7 +205,7 @@ def parse_grid_data(sheets_data: dict[str, list[list[Any]]]) -> list[ParsedRow]:
                     "failed_steps": parse_int(raw.get("Failed - Steps")),
                     "daily_comments": clean_text(raw.get("DAILY COMMENTS")),
                 }
-                for field in ("ticket_id_raw", "tester_name_raw", "work_date"):
+                for field in ("tester_name_raw", "work_date"):
                     if not payload.get(field):
                         errors.append(f"Missing required field: {field}")
             rows.append(ParsedRow(sheet, row_idx + 1, payload, errors))
@@ -244,7 +244,7 @@ def parse_workbook(content: bytes) -> list[ParsedRow]:
                         errors.append(f"Missing required field: {field}")
             else:
                 payload = {
-                    "ticket_id_raw": clean_text(raw.get("TICKET ID")),
+                    "ticket_id_raw": clean_text(raw.get("TICKET ID")) or "GENERAL",
                     "workstream": "BT" if sheet.endswith("BT") else "FT",
                     "tester_name_raw": clean_text(raw.get("TESTER")),
                     "task": clean_text(raw.get("TASK")),
@@ -257,7 +257,7 @@ def parse_workbook(content: bytes) -> list[ParsedRow]:
                     "failed_steps": parse_int(raw.get("Failed - Steps")),
                     "daily_comments": clean_text(raw.get("DAILY COMMENTS")),
                 }
-                for field in ("ticket_id_raw", "tester_name_raw", "work_date"):
+                for field in ("tester_name_raw", "work_date"):
                     if not payload.get(field):
                         errors.append(f"Missing required field: {field}")
             rows.append(ParsedRow(sheet, row_num, payload, errors))
