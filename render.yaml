@@ -1,6 +1,7 @@
 services:
   - type: web
     name: naren2503-team-tracker
+    runtime: docker
     plan: free
     envVars:
       - key: SECRET_KEY
