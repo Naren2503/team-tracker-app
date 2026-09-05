@@ -218,6 +218,35 @@ async function previewImport() {
   showNotice(response.ok ? 'Preview complete' : payload.detail || 'Preview failed', !response.ok);
 }
 
+async function syncFromUrl() {
+  const urlInput = document.getElementById('syncUrlInput');
+  const modeInput = document.getElementById('syncUrlMode');
+  const btn = document.getElementById('syncUrlBtn');
+  if (!urlInput || !urlInput.value) return;
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Syncing...';
+  try {
+    const response = await fetch('/api/imports/sync-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: urlInput.value, mode: modeInput ? modeInput.value : 'merge' }),
+    });
+    const payload = await response.json();
+    if (response.ok) {
+      showNotice(`Sync successful! ${payload.successful_rows} records updated.`, false);
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      showNotice(payload.detail || 'Sync failed', true);
+    }
+  } catch (err) {
+    showNotice(`Sync error: ${err.message}`, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
 const importForm = document.getElementById('importForm');
 if (importForm) {
   importForm.addEventListener('submit', async (event) => {
