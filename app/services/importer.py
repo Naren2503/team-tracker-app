@@ -8,7 +8,7 @@ import json
 import re
 from typing import Any
 from openpyxl import load_workbook
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 from ..models import ImportBatch, ImportRow, TrackerRecord, User, WorkLog
 from .audit import audit
@@ -281,60 +281,113 @@ def import_parsed_rows(db: Session, actor: User, file_name: str, file_hash: str,
     batch = ImportBatch(file_name=file_name, file_hash=file_hash, mode=mode, status="running", imported_by_id=actor.id)
     db.add(batch)
     db.flush()
+
+    now = datetime.utcnow()
     if mode == "replace":
-        for record in db.execute(select(TrackerRecord).where(TrackerRecord.deleted_at.is_(None))).scalars():
-            record.deleted_at = datetime.utcnow()
-        for log in db.execute(select(WorkLog).where(WorkLog.deleted_at.is_(None))).scalars():
-            log.deleted_at = datetime.utcnow()
+        db.execute(update(TrackerRecord).where(TrackerRecord.deleted_at.is_(None)).values(deleted_at=now))
+        db.execute(update(WorkLog).where(WorkLog.deleted_at.is_(None)).values(deleted_at=now))
+        existing_trackers = {}
+        existing_worklogs = {}
+    else:
+        existing_trackers = {r.ticket_id: r for r in db.execute(select(TrackerRecord).where(TrackerRecord.deleted_at.is_(None))).scalars()}
+        existing_worklogs = {(w.source_sheet, w.source_row): w for w in db.execute(select(WorkLog).where(WorkLog.deleted_at.is_(None))).scalars()}
+
     success = rejected = 0
+    import_rows_to_add = []
+    work_logs_to_add = []
+    new_trackers_to_add = []
+
+    # First pass: Tracker records
     for parsed_row in parsed:
+        if parsed_row.sheet != "DQ Task Tracker":
+            continue
         row_status = "accepted" if not parsed_row.errors else "rejected"
         if parsed_row.errors:
             rejected += 1
         else:
             try:
-                if parsed_row.sheet == "DQ Task Tracker":
-                    payload = parsed_row.payload
-                    existing = db.execute(select(TrackerRecord).where(TrackerRecord.ticket_id == payload["ticket_id"], TrackerRecord.deleted_at.is_(None))).scalar_one_or_none()
-                    if mode == "add" and existing:
-                        raise ValueError("Duplicate tracker ticket")
-                    record = existing if existing and mode == "merge" else TrackerRecord(ticket_id=payload["ticket_id"])
-                    record.date_started = payload["date_started"]
-                    record.date_ended = payload["date_ended"]
-                    record.tester_name_raw = payload["tester_name_raw"]
-                    record.status = payload["status"]
-                    record.zephyr_upload = payload["zephyr_upload"]
-                    record.comments = payload["comments"]
-                    record.source_sheet = parsed_row.sheet
-                    record.source_row = parsed_row.row_number
-                    record.updated_by_id = actor.id
-                    record.version = (record.version or 0) + 1
-                    if not existing or mode != "merge":
-                        record.created_by_id = actor.id
-                        db.add(record)
+                payload = parsed_row.payload
+                ticket_id = payload["ticket_id"]
+                existing = existing_trackers.get(ticket_id)
+                if mode == "add" and existing:
+                    raise ValueError("Duplicate tracker ticket")
+                if existing and mode == "merge":
+                    record = existing
                 else:
-                    payload = parsed_row.payload
-                    match = db.execute(select(TrackerRecord).where(TrackerRecord.ticket_id == payload["ticket_id_raw"], TrackerRecord.deleted_at.is_(None))).scalar_one_or_none()
-                    existing_log = db.execute(
-                        select(WorkLog).where(
-                            WorkLog.source_sheet == parsed_row.sheet,
-                            WorkLog.source_row == parsed_row.row_number,
-                            WorkLog.deleted_at.is_(None)
-                        )
-                    ).scalar_one_or_none()
-                    if existing_log and mode == "merge":
-                        existing_log.tracker_record_id = match.id if match else None
-                        existing_log.updated_by_id = actor.id
-                        for k, v in payload.items():
-                            setattr(existing_log, k, v)
-                    else:
-                        db.add(WorkLog(tracker_record_id=match.id if match else None, source_sheet=parsed_row.sheet, source_row=parsed_row.row_number, created_by_id=actor.id, updated_by_id=actor.id, **payload))
+                    record = TrackerRecord(ticket_id=ticket_id)
+                    existing_trackers[ticket_id] = record
+                    new_trackers_to_add.append(record)
+
+                record.date_started = payload["date_started"]
+                record.date_ended = payload["date_ended"]
+                record.tester_name_raw = payload["tester_name_raw"]
+                record.status = payload["status"]
+                record.zephyr_upload = payload["zephyr_upload"]
+                record.comments = payload["comments"]
+                record.source_sheet = parsed_row.sheet
+                record.source_row = parsed_row.row_number
+                record.updated_by_id = actor.id
+                record.version = (record.version or 0) + 1
+                if not existing or mode != "merge":
+                    record.created_by_id = actor.id
                 success += 1
             except Exception as exc:
                 row_status = "rejected"
                 parsed_row.errors.append(str(exc))
                 rejected += 1
-        db.add(ImportRow(import_id=batch.id, sheet_name=parsed_row.sheet, row_number=parsed_row.row_number, status=row_status, error_message="; ".join(parsed_row.errors) or None, raw_json=json.dumps(parsed_row.payload, default=str)))
+
+        if row_status == "rejected":
+            import_rows_to_add.append(ImportRow(import_id=batch.id, sheet_name=parsed_row.sheet, row_number=parsed_row.row_number, status=row_status, error_message="; ".join(parsed_row.errors) or None, raw_json=json.dumps(parsed_row.payload, default=str)))
+
+    # Flush new trackers so they get database IDs for foreign keys
+    if new_trackers_to_add:
+        db.add_all(new_trackers_to_add)
+        db.flush()
+
+    # Second pass: Work logs
+    for parsed_row in parsed:
+        if parsed_row.sheet == "DQ Task Tracker":
+            continue
+        row_status = "accepted" if not parsed_row.errors else "rejected"
+        if parsed_row.errors:
+            rejected += 1
+        else:
+            try:
+                payload = parsed_row.payload
+                ticket_id_raw = payload.get("ticket_id_raw") or "GENERAL"
+                matched_tracker = existing_trackers.get(ticket_id_raw)
+                tracker_record_id = matched_tracker.id if matched_tracker else None
+
+                key = (parsed_row.sheet, parsed_row.row_number)
+                existing_log = existing_worklogs.get(key)
+                if existing_log and mode == "merge":
+                    existing_log.tracker_record_id = tracker_record_id
+                    existing_log.updated_by_id = actor.id
+                    for k, v in payload.items():
+                        setattr(existing_log, k, v)
+                else:
+                    work_logs_to_add.append(WorkLog(
+                        tracker_record_id=tracker_record_id,
+                        source_sheet=parsed_row.sheet,
+                        source_row=parsed_row.row_number,
+                        created_by_id=actor.id,
+                        updated_by_id=actor.id,
+                        **payload
+                    ))
+                success += 1
+            except Exception as exc:
+                row_status = "rejected"
+                parsed_row.errors.append(str(exc))
+                rejected += 1
+
+        if row_status == "rejected":
+            import_rows_to_add.append(ImportRow(import_id=batch.id, sheet_name=parsed_row.sheet, row_number=parsed_row.row_number, status=row_status, error_message="; ".join(parsed_row.errors) or None, raw_json=json.dumps(parsed_row.payload, default=str)))
+
+    if work_logs_to_add:
+        db.add_all(work_logs_to_add)
+    if import_rows_to_add:
+        db.add_all(import_rows_to_add)
+
     batch.successful_rows = success
     batch.rejected_rows = rejected
     batch.status = "completed_with_errors" if rejected else "completed"

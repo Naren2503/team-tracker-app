@@ -39,4 +39,5 @@
   <section class="panel wide-panel"><h2>Tester Utilization</h2><div id="utilizationChart" class="bars">{% for label, value in metrics.utilization.items() %}<button><span>{{ label }}</span><i style="width: {{ [value, 100]|min }}%"></i><b>{{ value }}%</b></button>{% endfor %}</div></section>
 {% endif %}
 </div>
+<script id="initialMetrics" type="application/json">{{ metrics|tojson }}</script>
 {% endblock %}

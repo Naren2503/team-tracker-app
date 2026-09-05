@@ -182,31 +182,53 @@ async function refreshDashboard() {
   showNotice('Dashboard refreshed');
 }
 
-async function refreshTracker() {
+function refreshTracker() {
   rememberFilters();
   const startDate = document.getElementById('trackerStartDateFilter')?.value || '';
   const endDate = document.getElementById('trackerEndDateFilter')?.value || '';
   const tester = document.getElementById('trackerTesterFilter')?.value || '';
+  const counts = { completed: 0, in_progress: 0, pending: 0, blocked: 0 };
+  let totalVisible = 0;
   document.querySelectorAll('#trackerTable tbody tr').forEach((row) => {
     const matchesTester = !tester || row.dataset.tester === tester;
     const matchesStart = !startDate || row.dataset.startDate >= startDate;
     const matchesEnd = !endDate || row.dataset.startDate <= endDate;
-    row.style.display = matchesTester && matchesStart && matchesEnd ? '' : 'none';
+    const visible = matchesTester && matchesStart && matchesEnd;
+    row.style.display = visible ? '' : 'none';
+    if (visible) {
+      totalVisible++;
+      const st = (row.dataset.status || '').toLowerCase();
+      if (st.includes('block')) counts.blocked++;
+      else if (st.includes('progress')) counts.in_progress++;
+      else if (st.includes('complete')) counts.completed++;
+      else counts.pending++;
+    }
   });
-  const params = new URLSearchParams({ granularity: 'month' });
-  if (tester) params.set('tester', tester);
-  if (startDate) params.set('start', startDate);
-  if (endDate) params.set('end', endDate);
-  const response = await fetch(`/api/dashboard/metrics?${params}`);
-  if (!response.ok) return;
-  const data = await response.json();
   const statusChart = document.getElementById('trackerStatusChart');
-  if (statusChart) statusChart.innerHTML = [['Completed', 'completed'], ['In progress', 'in_progress'], ['On hold', 'pending'], ['Blocked', 'blocked']].map(([label, key]) => `<div class="status-row"><span>${label}</span><i style="width: ${data.total_records ? data.status_counts[key] / data.total_records * 100 : 0}%"></i><b>${data.status_counts[key]}</b></div>`).join('');
+  if (statusChart) {
+    statusChart.innerHTML = [
+      ['Completed', counts.completed],
+      ['In progress', counts.in_progress],
+      ['On hold', counts.pending],
+      ['Blocked', counts.blocked]
+    ].map(([label, val]) => `<div class="status-row"><span>${label}</span><i style="width: ${totalVisible ? (val / totalVisible * 100) : 0}%"></i><b>${val}</b></div>`).join('');
+  }
 }
 
 restoreFilters();
+const initialDataElem = document.getElementById('initialMetrics');
+if (initialDataElem) {
+  try {
+    const data = JSON.parse(initialDataElem.textContent);
+    if (document.getElementById('trendLine') && data.trend) renderTrendline(document.getElementById('trendLine'), data.trend);
+    if (document.getElementById('lifecycleLine') && data.lifecycle_trend) renderLifecycleLine(document.getElementById('lifecycleLine'), data.lifecycle_trend);
+    scaleMixChart(document.getElementById('monthlyMixChart'));
+    scaleMixChart(document.getElementById('sixMonthChart'));
+  } catch (e) {
+    console.warn('Initial chart parse warning', e);
+  }
+}
 if (document.getElementById('trackerStatusChart')) refreshTracker();
-if (document.getElementById('trendLine') || document.getElementById('monthlyMixChart') || document.getElementById('utilizationCards') || document.getElementById('weeklyCards')) refreshDashboard();
 
 async function previewImport() {
   const form = document.getElementById('importForm');
