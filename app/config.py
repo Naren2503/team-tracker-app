@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./team_tracker.db"
     upload_max_mb: int = 10
     session_minutes: int = 480
-    seed_admin_email: str | None = None
-    seed_admin_password: str | None = None
+    seed_admin_email: str = "admin@tracker.local"
+    seed_admin_password: str = "Admin@12345"
     seed_admin_name: str = "Initial Admin"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
