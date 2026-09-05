@@ -94,6 +94,73 @@ def find_header(ws, expected: list[str]) -> tuple[int, dict[str, int]] | None:
     return None
 
 
+def find_grid_header(grid: list[list[Any]], expected: list[str]) -> tuple[int, dict[str, int]] | None:
+    expected_norm = {name.lower(): name for name in expected}
+    for row_idx, row in enumerate(grid[:20]):
+        mapping: dict[str, int] = {}
+        for col_idx, cell in enumerate(row):
+            value = clean_text(cell)
+            if value and value.lower() in expected_norm:
+                mapping[expected_norm[value.lower()]] = col_idx
+        if len(mapping) >= max(3, min(len(expected), 5)):
+            return row_idx, mapping
+    return None
+
+
+def parse_grid_data(sheets_data: dict[str, list[list[Any]]]) -> list[ParsedRow]:
+    rows: list[ParsedRow] = []
+    for sheet, expected in SOURCE_TABLES.items():
+        if sheet not in sheets_data:
+            continue
+        grid = sheets_data[sheet]
+        if not grid:
+            continue
+        header = find_grid_header(grid, expected)
+        if not header:
+            rows.append(ParsedRow(sheet, 0, {}, ["Required header row was not found"]))
+            continue
+        header_row_idx, mapping = header
+        for row_idx in range(header_row_idx + 1, len(grid)):
+            row = grid[row_idx]
+            raw = {name: (row[col_idx] if col_idx < len(row) else None) for name, col_idx in mapping.items()}
+            if all(clean_text(value) is None for value in raw.values()):
+                continue
+            errors: list[str] = []
+            if sheet == "DQ Task Tracker":
+                payload = {
+                    "ticket_id": clean_text(raw.get("Ticket ID")),
+                    "date_started": parse_date(raw.get("Date Started")),
+                    "date_ended": parse_date(raw.get("Date Ended")),
+                    "tester_name_raw": clean_text(raw.get("Tester")),
+                    "status": normalize_status(raw.get("DQ Status")),
+                    "zephyr_upload": clean_text(raw.get("Zephyr Upload")),
+                    "comments": clean_text(raw.get("Comments")),
+                }
+                for field in ("ticket_id", "date_started", "tester_name_raw", "status"):
+                    if not payload.get(field):
+                        errors.append(f"Missing required field: {field}")
+            else:
+                payload = {
+                    "ticket_id_raw": clean_text(raw.get("TICKET ID")),
+                    "workstream": "BT" if sheet.endswith("BT") else "FT",
+                    "tester_name_raw": clean_text(raw.get("TESTER")),
+                    "task": clean_text(raw.get("TASK")),
+                    "priority": (clean_text(raw.get("PRIORITY")) or "").title() or None,
+                    "work_date": parse_date(raw.get("DATE")),
+                    "work_log_hours": parse_number(raw.get("work log (hrs)")),
+                    "passed_tc": parse_int(raw.get("Passed - TC")),
+                    "passed_steps": parse_int(raw.get("Passed - Steps")),
+                    "failed_tc": parse_int(raw.get("Failed - TC")),
+                    "failed_steps": parse_int(raw.get("Failed - Steps")),
+                    "daily_comments": clean_text(raw.get("DAILY COMMENTS")),
+                }
+                for field in ("ticket_id_raw", "tester_name_raw", "work_date"):
+                    if not payload.get(field):
+                        errors.append(f"Missing required field: {field}")
+            rows.append(ParsedRow(sheet, row_idx + 1, payload, errors))
+    return rows
+
+
 def parse_workbook(content: bytes) -> list[ParsedRow]:
     wb = load_workbook(BytesIO(content), data_only=True, keep_vba=False)
     rows: list[ParsedRow] = []
@@ -157,11 +224,9 @@ def preview_import(content: bytes) -> dict[str, Any]:
     }
 
 
-def import_workbook(db: Session, actor: User, file_name: str, content: bytes, mode: str) -> ImportBatch:
+def import_parsed_rows(db: Session, actor: User, file_name: str, file_hash: str, parsed: list[ParsedRow], mode: str) -> ImportBatch:
     if mode not in {"merge", "replace", "add"}:
         raise ValueError("Import mode must be merge, replace, or add")
-    parsed = parse_workbook(content)
-    file_hash = sha256(content).hexdigest()
     batch = ImportBatch(file_name=file_name, file_hash=file_hash, mode=mode, status="running", imported_by_id=actor.id)
     db.add(batch)
     db.flush()
@@ -213,3 +278,16 @@ def import_workbook(db: Session, actor: User, file_name: str, content: bytes, mo
     audit(db, actor, "import", "import", batch.id, None, {"file_name": file_name, "mode": mode, "success": success, "rejected": rejected})
     db.commit()
     return batch
+
+
+def import_workbook(db: Session, actor: User, file_name: str, content: bytes, mode: str) -> ImportBatch:
+    parsed = parse_workbook(content)
+    file_hash = sha256(content).hexdigest()
+    return import_parsed_rows(db, actor, file_name, file_hash, parsed, mode)
+
+
+def import_grid_data(db: Session, actor: User, source_name: str, sheets_data: dict[str, list[list[Any]]], mode: str) -> ImportBatch:
+    parsed = parse_grid_data(sheets_data)
+    json_bytes = json.dumps(sheets_data, sort_keys=True).encode("utf-8")
+    file_hash = sha256(json_bytes).hexdigest()
+    return import_parsed_rows(db, actor, source_name, file_hash, parsed, mode)

@@ -1,5 +1,6 @@
 import csv
 from io import StringIO
+from typing import Any
 import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import PlainTextResponse
@@ -10,7 +11,7 @@ from ..database import get_db
 from ..dependencies import require_permission
 from ..models import ImportBatch, ImportRow, Role, User
 from ..permissions import IMPORT_EXCEL
-from ..services.importer import import_workbook, preview_import
+from ..services.importer import import_grid_data, import_workbook, preview_import
 from ..config import get_settings
 
 router = APIRouter(prefix="/api/imports", tags=["imports"])
@@ -18,6 +19,11 @@ router = APIRouter(prefix="/api/imports", tags=["imports"])
 
 class SyncUrlRequest(BaseModel):
     url: str
+    mode: str = "merge"
+
+
+class OfficeScriptSyncRequest(BaseModel):
+    sheets: dict[str, list[list[Any]]]
     mode: str = "merge"
 
 
@@ -133,6 +139,30 @@ async def webhook_import(
 
     actor = get_sync_actor(db)
     batch = import_workbook(db, actor, file_name, content, mode)
+    return {
+        "status": "success",
+        "batch_id": batch.id,
+        "import_status": batch.status,
+        "successful_rows": batch.successful_rows,
+        "rejected_rows": batch.rejected_rows,
+    }
+
+
+@router.post("/office-script-sync")
+async def office_script_sync(
+    payload: OfficeScriptSyncRequest,
+    token: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    settings = get_settings()
+    if token != settings.secret_key and token != "team-tracker-sync":
+        raise HTTPException(status_code=403, detail="Invalid token")
+
+    if not payload.sheets:
+        raise HTTPException(status_code=400, detail="No sheet data provided in payload")
+
+    actor = get_sync_actor(db)
+    batch = import_grid_data(db, actor, "Excel Online Office Script", payload.sheets, payload.mode)
     return {
         "status": "success",
         "batch_id": batch.id,
