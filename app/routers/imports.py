@@ -24,7 +24,7 @@ class SyncUrlRequest(BaseModel):
 
 class OfficeScriptSyncRequest(BaseModel):
     sheets: dict[str, list[list[Any]]]
-    mode: str = "merge"
+    mode: str = "replace"
 
 
 def validate_upload(file_name: str, content: bytes) -> None:

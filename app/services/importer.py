@@ -315,7 +315,20 @@ def import_parsed_rows(db: Session, actor: User, file_name: str, file_hash: str,
                 else:
                     payload = parsed_row.payload
                     match = db.execute(select(TrackerRecord).where(TrackerRecord.ticket_id == payload["ticket_id_raw"], TrackerRecord.deleted_at.is_(None))).scalar_one_or_none()
-                    db.add(WorkLog(tracker_record_id=match.id if match else None, source_sheet=parsed_row.sheet, source_row=parsed_row.row_number, created_by_id=actor.id, updated_by_id=actor.id, **payload))
+                    existing_log = db.execute(
+                        select(WorkLog).where(
+                            WorkLog.source_sheet == parsed_row.sheet,
+                            WorkLog.source_row == parsed_row.row_number,
+                            WorkLog.deleted_at.is_(None)
+                        )
+                    ).scalar_one_or_none()
+                    if existing_log and mode == "merge":
+                        existing_log.tracker_record_id = match.id if match else None
+                        existing_log.updated_by_id = actor.id
+                        for k, v in payload.items():
+                            setattr(existing_log, k, v)
+                    else:
+                        db.add(WorkLog(tracker_record_id=match.id if match else None, source_sheet=parsed_row.sheet, source_row=parsed_row.row_number, created_by_id=actor.id, updated_by_id=actor.id, **payload))
                 success += 1
             except Exception as exc:
                 row_status = "rejected"
