@@ -50,16 +50,30 @@ def parse_int(value: Any) -> int | None:
 
 
 def parse_date(value: Any) -> date | None:
-    if value is None or clean_text(value) in (None, "-", "0"):
+    if value is None:
         return None
     if isinstance(value, datetime):
         return value.date()
     if isinstance(value, date):
         return value
     text = clean_text(value)
-    if not text:
+    if not text or text in ("-", "0", "N/A", "na", "None"):
         return None
-    for fmt in ("%d-%b-%Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"):
+    # If Excel serial number as string or float
+    try:
+        num = float(text)
+        if 20000 < num < 60000:
+            from datetime import timedelta
+            # Excel base date (accounting for 1900 leap year bug)
+            base = date(1899, 12, 30)
+            return base + timedelta(days=int(num))
+    except ValueError:
+        pass
+    for fmt in (
+        "%d-%b-%Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y",
+        "%d-%m-%Y", "%d-%b-%y", "%d/%m/%y", "%m/%d/%y",
+        "%b %d, %Y", "%d %b %Y", "%Y/%m/%d"
+    ):
         try:
             return datetime.strptime(text, fmt).date()
         except ValueError:
@@ -123,6 +137,13 @@ def parse_grid_data(sheets_data: dict[str, list[list[Any]]]) -> list[ParsedRow]:
         for row_idx in range(header_row_idx + 1, len(grid)):
             row = grid[row_idx]
             raw = {name: (row[col_idx] if col_idx < len(row) else None) for name, col_idx in mapping.items()}
+            # Ignore empty/template rows that have no ticket ID and no tester
+            if sheet == "DQ Task Tracker":
+                if not clean_text(raw.get("Ticket ID")) and not clean_text(raw.get("Tester")):
+                    continue
+            else:
+                if not clean_text(raw.get("TICKET ID")) and not clean_text(raw.get("TESTER")):
+                    continue
             if all(clean_text(value) is None for value in raw.values()):
                 continue
             errors: list[str] = []
