@@ -7,12 +7,28 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base
 from app.models import TrackerRecord, WorkLog
-from app.services.dashboard import backlog_metrics, dashboard_metrics
+from app.services.dashboard import backlog_metrics, dashboard_metrics, is_active_backlog_status
 
 
 def login(client, email="admin@test.local"):
     response = client.post("/login", data={"email": email, "password": "Password12345!"}, follow_redirects=False)
     assert response.status_code == 303
+
+
+@pytest.mark.parametrize("status", [
+    "🏃 Estimation In progress",
+    "🏃 Design In progress",
+    "🏃 Execution In progress",
+    "⚠️ Not started",
+    "In progress",
+])
+def test_requested_workflow_statuses_are_active_backlog(status):
+    assert is_active_backlog_status(status)
+
+
+@pytest.mark.parametrize("status", ["Completed", "Blocked", "Pending", "Withdrawn", None])
+def test_other_workflow_statuses_are_not_active_backlog(status):
+    assert not is_active_backlog_status(status)
 
 
 def test_monthly_report_uses_ft_activity_dates_and_dq_end_date():

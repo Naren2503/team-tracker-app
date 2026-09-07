@@ -1,7 +1,8 @@
 from io import BytesIO
 from openpyxl import Workbook
 from datetime import date
-from app.services.importer import parse_date, preview_import
+import pytest
+from app.services.importer import normalize_status, parse_date, preview_import
 
 
 def make_workbook():
@@ -27,3 +28,13 @@ def test_import_preview_accepts_valid_tracker_and_work_log_rows():
 
 def test_ambiguous_slash_date_uses_workbook_month_day_order():
     assert parse_date("09/01/2026") == date(2026, 9, 1)
+
+
+@pytest.mark.parametrize(("source", "expected"), [
+    ("🏃 Estimation In progress", "Estimation In progress"),
+    ("🏃 Design In progress", "Design In progress"),
+    ("🏃 Execution In progress", "Execution In progress"),
+    ("⚠️ Not started", "Not started"),
+])
+def test_normalize_status_preserves_active_workflow_stage(source, expected):
+    assert normalize_status(source) == expected

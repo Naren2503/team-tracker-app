@@ -94,6 +94,14 @@ def parse_date(value: Any) -> date | None:
 def normalize_status(value: Any) -> str:
     text = clean_text(value) or "Pending"
     lowered = text.lower()
+    if "estimation" in lowered and "progress" in lowered:
+        return "Estimation In progress"
+    if "design" in lowered and "progress" in lowered:
+        return "Design In progress"
+    if "execution" in lowered and "progress" in lowered:
+        return "Execution In progress"
+    if "not started" in lowered:
+        return "Not started"
     if "complete" in lowered:
         return "Completed"
     if "block" in lowered or "hold" in lowered:

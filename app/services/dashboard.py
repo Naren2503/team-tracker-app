@@ -6,6 +6,18 @@ from ..models import TrackerRecord, WorkLog
 
 
 BT_TICKET_PREFIXES = ("HYDRAS", "THESTRALS", "CIMDB", "CIMBT")
+ACTIVE_BACKLOG_STATUSES = {
+    "estimation in progress",
+    "design in progress",
+    "execution in progress",
+    "not started",
+    "in progress",
+}
+
+
+def is_active_backlog_status(status: str | None) -> bool:
+    normalized = " ".join((status or "").strip().casefold().split())
+    return any(normalized.endswith(active_status) for active_status in ACTIVE_BACKLOG_STATUSES)
 
 
 def ticket_category_matches(ticket_id: str | None, category: str | None) -> bool:
@@ -41,7 +53,7 @@ def backlog_metrics(db: Session, start: date, end: date, tester: str | None = No
         backlog = [
             record for record in records
             if record.date_started <= month_end
-            and (record.status or "").strip().casefold() == "in progress"
+            and is_active_backlog_status(record.status)
             and (record.date_ended is None or record.date_ended > month_end)
         ]
         rows.append({
