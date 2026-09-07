@@ -90,6 +90,7 @@ def test_backlog_metrics_include_preexisting_open_tickets_and_monthly_movements(
             TrackerRecord(ticket_id="DQ-OLD", tester_name_raw="Tester A", date_started=date(2025, 12, 10), status="In progress"),
             TrackerRecord(ticket_id="DQ-CLOSED", tester_name_raw="Tester A", date_started=date(2026, 1, 5), date_ended=date(2026, 2, 12), status="Completed"),
             TrackerRecord(ticket_id="HYDRAS-OPEN", tester_name_raw="Tester B", date_started=date(2026, 2, 8), status="In progress"),
+            TrackerRecord(ticket_id="DQ-DONE-NO-END", tester_name_raw="Tester A", date_started=date(2025, 11, 5), status="Completed"),
             TrackerRecord(ticket_id="MISC-LATE", tester_name_raw="Tester A", date_started=date(2026, 3, 1), status="Pending"),
         ])
         db.commit()
@@ -98,11 +99,11 @@ def test_backlog_metrics_include_preexisting_open_tickets_and_monthly_movements(
         dq_rows = backlog_metrics(db, start=date(2026, 1, 1), end=date(2026, 2, 28), tester="Tester A", ticket_category="dq")
 
     assert rows == [
-        {"month": "2026-01", "created": 1, "closed": 0, "month_end_backlog": 2},
+        {"month": "2026-01", "created": 1, "closed": 0, "month_end_backlog": 1},
         {"month": "2026-02", "created": 1, "closed": 1, "month_end_backlog": 2},
     ]
     assert dq_rows == [
-        {"month": "2026-01", "created": 1, "closed": 0, "month_end_backlog": 2},
+        {"month": "2026-01", "created": 1, "closed": 0, "month_end_backlog": 1},
         {"month": "2026-02", "created": 0, "closed": 1, "month_end_backlog": 1},
     ]
 
