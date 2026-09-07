@@ -38,6 +38,11 @@ app.include_router(audit.router)
 app.include_router(exports.router)
 
 
+@app.get("/health", include_in_schema=False)
+def health() -> dict[str, str]:
+    return {"status": "ready"}
+
+
 @app.on_event("startup")
 def startup() -> None:
     Base.metadata.create_all(bind=engine)

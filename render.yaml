@@ -1,5 +1,11 @@
 services:
   - type: web
+    name: naren-tracker-launch
+    runtime: static
+    buildCommand: echo "Static launch page ready"
+    staticPublishPath: ./launch
+
+  - type: web
     name: naren2503-team-tracker
     runtime: docker
     plan: free

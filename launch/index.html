@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101815">
+  <title>Naren Tracker</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101815;
+      --surface: #18231f;
+      --line: #31413a;
+      --ink: #f1f7f3;
+      --muted: #9fb2a9;
+      --mint: #5ac8ad;
+      --orange: #efa061;
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      color: var(--ink);
+      background: radial-gradient(circle at 50% 40%, #1b2a25 0, var(--bg) 52%);
+      font-family: Aptos, Candara, "Segoe UI", sans-serif;
+    }
+    main { width: min(560px, calc(100% - 40px)); text-align: center; }
+    .mark { width: 132px; height: 92px; margin: 0 auto 30px; position: relative; }
+    .track { position: absolute; left: 6px; right: 6px; top: 45px; height: 2px; background: var(--line); }
+    .pulse { position: absolute; top: 39px; width: 14px; height: 14px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 8px rgba(90, 200, 173, .12); animation: travel 2.1s ease-in-out infinite; }
+    .bar { position: absolute; bottom: 0; width: 12px; border-radius: 3px 3px 0 0; transform-origin: bottom; animation: rise 1.4s ease-in-out infinite alternate; }
+    .bar:nth-child(2) { left: 22px; height: 25px; background: var(--orange); }
+    .bar:nth-child(3) { left: 44px; height: 46px; background: var(--mint); animation-delay: .2s; }
+    .bar:nth-child(4) { left: 66px; height: 34px; background: #9aaba3; animation-delay: .4s; }
+    .bar:nth-child(5) { left: 88px; height: 64px; background: var(--orange); animation-delay: .6s; }
+    h1 { margin: 0; font-size: clamp(2rem, 8vw, 3.4rem); letter-spacing: 0; }
+    .eyebrow { margin: 0 0 9px; color: var(--orange); font-size: .75rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    #status { min-height: 1.5em; margin: 18px 0 22px; color: var(--muted); }
+    .progress { width: min(320px, 100%); height: 3px; margin: auto; overflow: hidden; background: var(--line); }
+    .progress::after { content: ""; display: block; width: 42%; height: 100%; background: var(--mint); animation: progress 1.4s ease-in-out infinite; }
+    a { display: inline-block; margin-top: 24px; color: var(--ink); text-underline-offset: 4px; }
+    @keyframes travel { 0%, 100% { left: 0; } 50% { left: 118px; } }
+    @keyframes rise { from { transform: scaleY(.45); opacity: .65; } to { transform: scaleY(1); opacity: 1; } }
+    @keyframes progress { from { transform: translateX(-105%); } to { transform: translateX(340%); } }
+    @media (prefers-reduced-motion: reduce) { *, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="mark" aria-hidden="true">
+      <div class="track"></div><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="pulse"></i>
+    </div>
+    <p class="eyebrow">DQ testing operations</p>
+    <h1>Naren Tracker</h1>
+    <p id="status" role="status" aria-live="polite">Starting your workspace...</p>
+    <div class="progress" aria-hidden="true"></div>
+    <a id="continue" href="https://naren2503-team-tracker.onrender.com/">Continue to tracker</a>
+  </main>
+  <script>
+    const appUrl = 'https://naren2503-team-tracker.onrender.com';
+    const requestedPath = new URLSearchParams(location.search).get('path') || '/';
+    const destination = `${appUrl}${requestedPath.startsWith('/') ? requestedPath : '/'}`;
+    const status = document.getElementById('status');
+    const continueLink = document.getElementById('continue');
+    continueLink.href = destination;
+    let attempt = 0;
+
+    async function wakeApp() {
+      attempt += 1;
+      status.textContent = attempt < 2 ? 'Starting your workspace...' : 'Almost ready. Loading tracker data...';
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
+      try {
+        const response = await fetch(`${appUrl}/health?wake=${Date.now()}`, { mode: 'cors', cache: 'no-store', signal: controller.signal });
+        if (!response.ok) throw new Error('Service is not ready');
+        status.textContent = 'Ready. Opening Naren Tracker...';
+        location.replace(destination);
+      } catch (error) {
+        setTimeout(wakeApp, 2500);
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    wakeApp();
+  </script>
+</body>
+</html>
