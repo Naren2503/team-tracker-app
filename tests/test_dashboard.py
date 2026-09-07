@@ -159,6 +159,53 @@ def test_monthly_ticket_category_filters_cards_details_and_history(category, exp
     assert metrics["history_trend"]["2026-01"]["tickets"] == len(expected_tickets)
 
 
+def test_monthly_others_details_include_ft_ticket_without_dq_record():
+    engine = create_engine("sqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(bind=engine)
+
+    with Session(engine) as db:
+        db.add_all([
+            WorkLog(
+                ticket_id_raw="SUPPORT-42",
+                workstream="FT",
+                tester_name_raw="FT Tester",
+                work_date=date(2025, 12, 20),
+                daily_comments="Started investigation",
+                source_sheet="Daily Report - FT",
+            ),
+            WorkLog(
+                ticket_id_raw="SUPPORT-42",
+                workstream="FT",
+                tester_name_raw="FT Tester",
+                work_date=date(2026, 1, 12),
+                work_log_hours=3,
+                daily_comments="Completed analysis",
+                source_sheet="Daily Report - FT",
+            ),
+        ])
+        db.commit()
+
+        metrics = dashboard_metrics(
+            db,
+            start=date(2026, 1, 1),
+            end=date(2026, 1, 31),
+            report_view="monthly",
+            ticket_category="others",
+        )
+
+    assert metrics["total_records"] == 1
+    assert metrics["ticket_ageing"] == [{
+        "ticket_id": "SUPPORT-42",
+        "status": "Not available",
+        "tester": "FT Tester",
+        "start_date": "2025-12-20",
+        "end_date": None,
+        "date_warning": None,
+        "comments": "Completed analysis",
+        "age_days": None,
+    }]
+
+
 def test_lifecycle_trend_includes_created_and_resolved_ticket_names_for_hover_tooltips():
     engine = create_engine("sqlite:///:memory:", poolclass=StaticPool)
     Base.metadata.create_all(bind=engine)

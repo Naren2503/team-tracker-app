@@ -241,6 +241,7 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
 
     report_start_dates: dict[int, date] = {}
     report_testers: dict[int, str] = {}
+    unmatched_ticket_details: list[dict] = []
     if use_ft_activity:
         record_ids = {record.id for record in records}
         record_ids_by_ticket = {ticket_key(record.ticket_id): record.id for record in records}
@@ -255,12 +256,38 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
                 if log.tester_name_raw:
                     report_testers[target_record_id] = log.tester_name_raw
 
-    ticket_ageing = [ticket_ageing_item(record) for record in records]
+        selected_logs_by_ticket: dict[str, list[WorkLog]] = {}
+        for log in logs:
+            selected_logs_by_ticket.setdefault(ticket_key(log.ticket_id_raw), []).append(log)
+        matched_ticket_keys = set(record_ids_by_ticket)
+        matched_ticket_keys.update(ticket_key(log.ticket_id_raw) for log in logs if log.tracker_record_id in record_ids)
+        history_logs_by_ticket: dict[str, list[WorkLog]] = {}
+        for log in detail_logs:
+            history_logs_by_ticket.setdefault(ticket_key(log.ticket_id_raw), []).append(log)
+        for key, selected_ticket_logs in selected_logs_by_ticket.items():
+            if key in matched_ticket_keys:
+                continue
+            ticket_logs = history_logs_by_ticket.get(key, selected_ticket_logs)
+            dated_logs = [log for log in ticket_logs if log.work_date]
+            first_log = min(dated_logs, key=lambda log: log.work_date) if dated_logs else selected_ticket_logs[0]
+            latest_comment_log = max((log for log in ticket_logs if log.daily_comments), key=lambda log: log.work_date or date.min, default=None)
+            unmatched_ticket_details.append({
+                "ticket_id": (first_log.ticket_id_raw or "GENERAL").strip(),
+                "status": "Not available",
+                "tester": first_log.tester_name_raw or "Unassigned",
+                "start_date": first_log.work_date.isoformat() if first_log.work_date else None,
+                "end_date": None,
+                "date_warning": None,
+                "comments": latest_comment_log.daily_comments if latest_comment_log else "",
+                "age_days": None,
+            })
+
+    ticket_ageing = [ticket_ageing_item(record) for record in records] + unmatched_ticket_details
     ticket_ageing.sort(key=lambda item: item["age_days"] if item["age_days"] is not None else -1, reverse=True)
     age_values = [item["age_days"] for item in ticket_ageing if item["age_days"] is not None]
 
     return {
-        "total_records": len(records),
+        "total_records": len(ticket_ageing) if use_ft_activity else len(records),
         "status_counts": status_counts,
         "by_tester": by_tester,
         "total_hours": round(sum(log.work_log_hours or 0 for log in logs), 2),
