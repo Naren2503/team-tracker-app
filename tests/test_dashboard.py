@@ -7,7 +7,12 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base
 from app.models import TrackerRecord, WorkLog
-from app.services.dashboard import dashboard_metrics
+from app.services.dashboard import backlog_metrics, dashboard_metrics
+
+
+def login(client, email="admin@test.local"):
+    response = client.post("/login", data={"email": email, "password": "Password12345!"}, follow_redirects=False)
+    assert response.status_code == 303
 
 
 def test_monthly_report_uses_ft_activity_dates_and_dq_end_date():
@@ -74,6 +79,49 @@ def test_monthly_report_uses_ft_activity_dates_and_dq_end_date():
     assert metrics["ticket_ageing"][0]["start_date"] == "2026-01-25"
     assert metrics["ticket_ageing"][0]["end_date"] == "2026-02-20"
     assert metrics["ticket_ageing"][0]["age_days"] == 26
+
+
+def test_backlog_metrics_include_preexisting_open_tickets_and_monthly_movements():
+    engine = create_engine("sqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(bind=engine)
+
+    with Session(engine) as db:
+        db.add_all([
+            TrackerRecord(ticket_id="DQ-OLD", tester_name_raw="Tester A", date_started=date(2025, 12, 10), status="In progress"),
+            TrackerRecord(ticket_id="DQ-CLOSED", tester_name_raw="Tester A", date_started=date(2026, 1, 5), date_ended=date(2026, 2, 12), status="Completed"),
+            TrackerRecord(ticket_id="HYDRAS-OPEN", tester_name_raw="Tester B", date_started=date(2026, 2, 8), status="In progress"),
+            TrackerRecord(ticket_id="MISC-LATE", tester_name_raw="Tester A", date_started=date(2026, 3, 1), status="Pending"),
+        ])
+        db.commit()
+
+        rows = backlog_metrics(db, start=date(2026, 1, 1), end=date(2026, 2, 28))
+        dq_rows = backlog_metrics(db, start=date(2026, 1, 1), end=date(2026, 2, 28), tester="Tester A", ticket_category="dq")
+
+    assert rows == [
+        {"month": "2026-01", "created": 1, "closed": 0, "month_end_backlog": 2},
+        {"month": "2026-02", "created": 1, "closed": 1, "month_end_backlog": 2},
+    ]
+    assert dq_rows == [
+        {"month": "2026-01", "created": 1, "closed": 0, "month_end_backlog": 2},
+        {"month": "2026-02", "created": 0, "closed": 1, "month_end_backlog": 1},
+    ]
+
+
+def test_backlog_page_and_api_expose_requested_columns(client):
+    login(client)
+
+    page = client.get("/backlog")
+    assert page.status_code == 200
+    assert "Backlog Dashboard" in page.text
+    assert "Month-End Backlog" in page.text
+    assert "backlogCategoryFilter" in page.text
+
+    response = client.get("/api/dashboard/backlog", params={"start": "2026-01-01", "end": "2026-02-28", "ticket_category": "dq"})
+    assert response.status_code == 200
+    assert response.json()["rows"] == [
+        {"month": "2026-01", "created": 0, "closed": 0, "month_end_backlog": 0},
+        {"month": "2026-02", "created": 0, "closed": 0, "month_end_backlog": 0},
+    ]
 
 
 def test_week_filter_defaults_to_all_ft_logs_in_selected_month():

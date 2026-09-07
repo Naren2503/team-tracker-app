@@ -13,7 +13,7 @@ from .dependencies import current_user_or_none, user_permissions
 from .models import AuditLog, ImportBatch, TrackerRecord, User
 from .routers import admin, audit, auth, dashboard, exports, imports, tracker
 from .seed import seed_reference_data
-from .services.dashboard import dashboard_metrics, filter_options
+from .services.dashboard import backlog_metrics, dashboard_metrics, filter_options
 
 BASE_DIR = Path(__file__).resolve().parent
 app = FastAPI(title="Team Tracker", version="0.1.0")
@@ -98,6 +98,25 @@ def weekly_page(request: Request, db: Session = Depends(get_db), user: User | No
 @app.get("/utilization", response_class=HTMLResponse)
 def utilization_page(request: Request, db: Session = Depends(get_db), user: User | None = Depends(current_user_or_none)):
     return report_page("utilization", request, db, user)
+
+
+@app.get("/backlog", response_class=HTMLResponse)
+def backlog_page(request: Request, db: Session = Depends(get_db), user: User | None = Depends(current_user_or_none)):
+    if not user:
+        return RedirectResponse("/login")
+    current_month = date.today().replace(day=1)
+    default_start = (current_month - timedelta(days=5 * 31)).replace(day=1)
+    current_month_end = date(current_month.year, current_month.month, monthrange(current_month.year, current_month.month)[1])
+    context = page_context(request, user, db)
+    context.update({
+        "rows": backlog_metrics(db, default_start, current_month_end),
+        "filters": filter_options(db),
+        "page": "backlog",
+        "view": "backlog",
+        "default_start_month": default_start.strftime("%Y-%m"),
+        "default_end_month": current_month.strftime("%Y-%m"),
+    })
+    return templates.TemplateResponse("backlog.html", context)
 
 
 @app.get("/tracker", response_class=HTMLResponse)

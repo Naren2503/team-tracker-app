@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..dependencies import get_current_user
 from ..models import User
-from ..services.dashboard import dashboard_metrics, filter_options
+from ..services.dashboard import backlog_metrics, dashboard_metrics, filter_options
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
@@ -25,3 +25,8 @@ def metrics(start: date | None = None, end: date | None = None, month: str | Non
 @router.get("/filters")
 def filters(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return filter_options(db)
+
+
+@router.get("/backlog")
+def backlog(start: date, end: date, tester: str | None = None, status: str | None = None, ticket_category: str | None = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return {"rows": backlog_metrics(db, start=start, end=end, tester=tester, status=status, ticket_category=ticket_category)}

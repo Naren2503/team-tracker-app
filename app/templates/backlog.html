@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Backlog Dashboard{% endblock %}
+{% block content %}
+<div class="filters">
+  <label>Start month<input id="backlogStartMonth" type="month" value="{{ default_start_month }}"></label>
+  <label>End month<input id="backlogEndMonth" type="month" value="{{ default_end_month }}"></label>
+  <label>Tester<select id="backlogTesterFilter"><option value="">All</option>{% for tester in filters.testers %}<option>{{ tester }}</option>{% endfor %}</select></label>
+  <label>Status<select id="backlogStatusFilter"><option value="">All</option>{% for status in filters.statuses %}<option>{{ status }}</option>{% endfor %}</select></label>
+  <label>Ticket type<select id="backlogCategoryFilter"><option value="all">All tickets</option><option value="dq">DQ tickets</option><option value="bt">BT tickets</option><option value="others">Others</option></select></label>
+  <button onclick="refreshBacklog()">Apply</button>
+</div>
+<section class="panel wide-panel">
+  <h2>Monthly Backlog</h2>
+  <div class="table-wrap">
+    <table id="backlogTable">
+      <thead><tr><th>Month</th><th>Created</th><th>Closed</th><th>Month-End Backlog</th></tr></thead>
+      <tbody>{% for row in rows %}<tr><td>{{ row.month }}</td><td>{{ row.created }}</td><td>{{ row.closed }}</td><td><strong>{{ row.month_end_backlog }}</strong></td></tr>{% endfor %}</tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

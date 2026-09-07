@@ -21,6 +21,34 @@ def ticket_category_matches(ticket_id: str | None, category: str | None) -> bool
     return True
 
 
+def backlog_metrics(db: Session, start: date, end: date, tester: str | None = None, status: str | None = None, ticket_category: str | None = None) -> list[dict]:
+    query = select(TrackerRecord).where(TrackerRecord.deleted_at.is_(None), TrackerRecord.date_started.is_not(None))
+    if tester:
+        query = query.where(TrackerRecord.tester_name_raw == tester)
+    if status:
+        query = query.where(TrackerRecord.status == status)
+    records = db.execute(query).scalars().all()
+    if ticket_category:
+        records = [record for record in records if ticket_category_matches(record.ticket_id, ticket_category)]
+
+    rows = []
+    cursor = start.replace(day=1)
+    final_month = end.replace(day=1)
+    while cursor <= final_month:
+        month_end = date(cursor.year, cursor.month, monthrange(cursor.year, cursor.month)[1])
+        created = [record for record in records if cursor <= record.date_started <= month_end]
+        closed = [record for record in records if record.date_ended and cursor <= record.date_ended <= month_end]
+        backlog = [record for record in records if record.date_started <= month_end and (record.date_ended is None or record.date_ended > month_end)]
+        rows.append({
+            "month": cursor.strftime("%Y-%m"),
+            "created": len(created),
+            "closed": len(closed),
+            "month_end_backlog": len(backlog),
+        })
+        cursor = (cursor + timedelta(days=32)).replace(day=1)
+    return rows
+
+
 def dashboard_metrics(db: Session, start: date | None = None, end: date | None = None, tester: str | None = None, status: str | None = None, granularity: str = "month", week: int | None = None, report_view: str | None = None, ticket_category: str | None = None) -> dict:
     if start is None and end is None and granularity == "month":
         current_month = date.today().replace(day=1)

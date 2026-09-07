@@ -74,7 +74,7 @@ function scaleMixChart(element) {
 function rememberFilters() {
   const view = document.body.dataset.view || 'dashboard';
   const values = {};
-  ['testerFilter', 'statusFilter', 'ticketCategoryFilter', 'monthlyMonthFilter', 'startMonthFilter', 'endMonthFilter', 'weekMonthFilter', 'weekFilter', 'granularityFilter', 'trackerTesterFilter', 'trackerStartDateFilter', 'trackerEndDateFilter'].forEach((id) => {
+  ['testerFilter', 'statusFilter', 'ticketCategoryFilter', 'monthlyMonthFilter', 'startMonthFilter', 'endMonthFilter', 'weekMonthFilter', 'weekFilter', 'granularityFilter', 'backlogStartMonth', 'backlogEndMonth', 'backlogTesterFilter', 'backlogStatusFilter', 'backlogCategoryFilter', 'trackerTesterFilter', 'trackerStartDateFilter', 'trackerEndDateFilter'].forEach((id) => {
     const element = document.getElementById(id);
     if (element) values[id] = element.value;
   });
@@ -214,6 +214,25 @@ async function refreshDashboard() {
   showNotice('Dashboard refreshed');
 }
 
+async function refreshBacklog() {
+  rememberFilters();
+  const startBounds = monthBounds(document.getElementById('backlogStartMonth')?.value);
+  const endBounds = monthBounds(document.getElementById('backlogEndMonth')?.value);
+  const params = new URLSearchParams({ start: startBounds.start || '', end: endBounds.end || '' });
+  const tester = document.getElementById('backlogTesterFilter')?.value || '';
+  const status = document.getElementById('backlogStatusFilter')?.value || '';
+  const category = document.getElementById('backlogCategoryFilter')?.value || '';
+  if (tester) params.set('tester', tester);
+  if (status) params.set('status', status);
+  if (category) params.set('ticket_category', category);
+  const response = await fetch(`/api/dashboard/backlog?${params}`);
+  if (!response.ok) return showNotice('Unable to refresh backlog', true);
+  const data = await response.json();
+  const tableBody = document.querySelector('#backlogTable tbody');
+  if (tableBody) tableBody.innerHTML = data.rows.map((row) => `<tr><td>${row.month}</td><td>${row.created}</td><td>${row.closed}</td><td><strong>${row.month_end_backlog}</strong></td></tr>`).join('');
+  showNotice('Backlog refreshed');
+}
+
 function refreshTracker() {
   rememberFilters();
   const startDate = document.getElementById('trackerStartDateFilter')?.value || '';
@@ -261,6 +280,7 @@ if (initialDataElem) {
   }
 }
 if (restoredFiltersChanged && initialDataElem) refreshDashboard();
+if (restoredFiltersChanged && document.getElementById('backlogTable')) refreshBacklog();
 if (document.getElementById('trackerStatusChart')) refreshTracker();
 
 async function previewImport() {
