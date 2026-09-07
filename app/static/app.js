@@ -82,15 +82,20 @@ function rememberFilters() {
 }
 
 function restoreFilters() {
+  let changed = false;
   try {
     const values = JSON.parse(sessionStorage.getItem('team-tracker-filters') || '{}');
     Object.entries(values).forEach(([id, value]) => {
       const element = document.getElementById(id);
-      if (element) element.value = value;
+      if (element && element.value !== value) {
+        element.value = value;
+        changed = true;
+      }
     });
   } catch (error) {
     sessionStorage.removeItem('team-tracker-filters');
   }
+  return changed;
 }
 
 function renderLifecycleLine(element, trend) {
@@ -242,7 +247,7 @@ function refreshTracker() {
   }
 }
 
-restoreFilters();
+const restoredFiltersChanged = restoreFilters();
 const initialDataElem = document.getElementById('initialMetrics');
 if (initialDataElem) {
   try {
@@ -255,6 +260,7 @@ if (initialDataElem) {
     console.warn('Initial chart parse warning', e);
   }
 }
+if (restoredFiltersChanged && initialDataElem) refreshDashboard();
 if (document.getElementById('trackerStatusChart')) refreshTracker();
 
 async function previewImport() {
