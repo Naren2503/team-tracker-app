@@ -217,6 +217,40 @@ def test_monthly_others_details_include_ft_ticket_without_dq_record():
     }]
 
 
+def test_all_filter_aggregates_testers_for_matched_shared_task():
+    engine = create_engine("sqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(bind=engine)
+
+    with Session(engine) as db:
+        record = TrackerRecord(
+            ticket_id="Support/Meetings",
+            tester_name_raw="Kousalya",
+            status="In progress",
+            comments="Tracker comment",
+        )
+        db.add(record)
+        db.flush()
+        db.add_all([
+            WorkLog(tracker_record_id=record.id, ticket_id_raw=record.ticket_id, workstream="FT", tester_name_raw="Kousalya", work_date=date(2026, 8, 3), work_log_hours=60, source_sheet="Daily Report - FT"),
+            WorkLog(tracker_record_id=record.id, ticket_id_raw=record.ticket_id, workstream="FT", tester_name_raw="Narendar", work_date=date(2026, 8, 10), work_log_hours=52, source_sheet="Daily Report - FT"),
+            WorkLog(tracker_record_id=record.id, ticket_id_raw=record.ticket_id, workstream="FT", tester_name_raw="Shweta", work_date=date(2026, 8, 17), work_log_hours=60, source_sheet="Daily Report - FT"),
+        ])
+        db.commit()
+
+        metrics = dashboard_metrics(
+            db,
+            start=date(2026, 8, 1),
+            end=date(2026, 8, 31),
+            report_view="monthly",
+            ticket_category="all",
+        )
+
+    ticket = metrics["ticket_ageing"][0]
+    assert ticket["tester"] == "Kousalya, Narendar, Shweta"
+    assert ticket["logged_hours"] == 172
+    assert ticket["comments"] == ""
+
+
 def test_lifecycle_trend_includes_created_and_resolved_ticket_names_for_hover_tooltips():
     engine = create_engine("sqlite:///:memory:", poolclass=StaticPool)
     Base.metadata.create_all(bind=engine)

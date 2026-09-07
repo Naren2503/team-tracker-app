@@ -228,20 +228,25 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
 
     def ticket_ageing_item(record: TrackerRecord) -> dict:
         start_date, end_date, warning = report_dates(record)
-        logged_hours = sum(
-            log.work_log_hours or 0
-            for log in logs
+        record_logs = [
+            log for log in logs
             if log.tracker_record_id == record.id or ticket_key(log.ticket_id_raw) == ticket_key(record.ticket_id)
-        )
+        ]
+        testers_by_name = {
+            log.tester_name_raw.strip().casefold(): log.tester_name_raw.strip()
+            for log in record_logs
+            if log.tester_name_raw and log.tester_name_raw.strip()
+        }
+        tester_names = sorted(testers_by_name.values(), key=str.casefold)
         return {
             "ticket_id": record.ticket_id,
             "status": record.status,
-            "tester": report_testers.get(record.id, record.tester_name_raw or "Unassigned"),
-            "logged_hours": round(logged_hours, 2),
+            "tester": ", ".join(tester_names) if tester_names else report_testers.get(record.id, record.tester_name_raw or "Unassigned"),
+            "logged_hours": round(sum(log.work_log_hours or 0 for log in record_logs), 2),
             "start_date": start_date.isoformat() if start_date else None,
             "end_date": end_date.isoformat() if end_date else None,
             "date_warning": warning,
-            "comments": record.comments or "",
+            "comments": "" if len(tester_names) > 1 else (record.comments or ""),
             "age_days": age_days(record),
         }
 
