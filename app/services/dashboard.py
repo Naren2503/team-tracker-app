@@ -69,20 +69,6 @@ def backlog_metrics(db: Session, start: date, end: date, tester: str | None = No
         for record in records
         if effective_start_dates[record.id]
     }
-    eligible_ft_ticket_keys = {
-        (log.ticket_id_raw or "").strip().casefold()
-        for log in ft_logs
-        if (not tester or log.tester_name_raw == tester)
-        and ticket_category_matches(log.ticket_id_raw, ticket_category)
-    }
-    if not status:
-        for log in ft_logs:
-            key = (log.ticket_id_raw or "").strip().casefold()
-            if key not in eligible_ft_ticket_keys or not log.work_date:
-                continue
-            current_start = created_dates_by_ticket.get(key)
-            if current_start is None or log.work_date < current_start:
-                created_dates_by_ticket[key] = log.work_date
 
     def effective_end_date(record: TrackerRecord) -> date | None:
         start_date = effective_start_dates.get(record.id)

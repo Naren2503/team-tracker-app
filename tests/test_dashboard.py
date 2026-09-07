@@ -134,7 +134,7 @@ def test_backlog_metrics_include_preexisting_open_tickets_and_monthly_movements(
 
     assert rows == [
         {"month": "2026-01", "created": 1, "closed": 0, "month_end_backlog": 1},
-        {"month": "2026-02", "created": 2, "closed": 1, "month_end_backlog": 2},
+        {"month": "2026-02", "created": 1, "closed": 1, "month_end_backlog": 2},
     ]
     assert dq_rows == [
         {"month": "2026-01", "created": 1, "closed": 0, "month_end_backlog": 1},
