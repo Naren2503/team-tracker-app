@@ -200,7 +200,7 @@ def test_monthly_others_details_include_ft_ticket_without_dq_record():
         "status": "Not available",
         "tester": "FT Tester",
         "logged_hours": 3,
-        "start_date": "2025-12-20",
+        "start_date": "2026-01-12",
         "end_date": None,
         "date_warning": None,
         "comments": "Completed analysis",

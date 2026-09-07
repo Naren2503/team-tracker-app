@@ -267,16 +267,12 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
             selected_logs_by_ticket.setdefault(ticket_key(log.ticket_id_raw), []).append(log)
         matched_ticket_keys = set(record_ids_by_ticket)
         matched_ticket_keys.update(ticket_key(log.ticket_id_raw) for log in logs if log.tracker_record_id in record_ids)
-        history_logs_by_ticket: dict[str, list[WorkLog]] = {}
-        for log in detail_logs:
-            history_logs_by_ticket.setdefault(ticket_key(log.ticket_id_raw), []).append(log)
         for key, selected_ticket_logs in selected_logs_by_ticket.items():
             if key in matched_ticket_keys:
                 continue
-            ticket_logs = history_logs_by_ticket.get(key, selected_ticket_logs)
-            dated_logs = [log for log in ticket_logs if log.work_date]
+            dated_logs = [log for log in selected_ticket_logs if log.work_date]
             first_log = min(dated_logs, key=lambda log: log.work_date) if dated_logs else selected_ticket_logs[0]
-            latest_comment_log = max((log for log in ticket_logs if log.daily_comments), key=lambda log: log.work_date or date.min, default=None)
+            latest_comment_log = max((log for log in selected_ticket_logs if log.daily_comments), key=lambda log: log.work_date or date.min, default=None)
             unmatched_ticket_details.append({
                 "ticket_id": (first_log.ticket_id_raw or "GENERAL").strip(),
                 "status": "Not available",
