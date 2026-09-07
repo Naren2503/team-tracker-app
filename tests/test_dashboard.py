@@ -109,6 +109,24 @@ def test_backlog_metrics_include_preexisting_open_tickets_and_monthly_movements(
             TrackerRecord(ticket_id="DQ-DONE-NO-END", tester_name_raw="Tester A", date_started=date(2025, 11, 5), status="Completed"),
             TrackerRecord(ticket_id="MISC-LATE", tester_name_raw="Tester A", date_started=date(2026, 3, 1), status="Pending"),
         ])
+        db.flush()
+        february_record = db.query(TrackerRecord).filter_by(ticket_id="HYDRAS-OPEN").one()
+        february_record.date_started = date(2026, 1, 20)
+        db.add(WorkLog(
+            tracker_record_id=february_record.id,
+            ticket_id_raw=february_record.ticket_id,
+            workstream="FT",
+            tester_name_raw="Tester B",
+            work_date=date(2026, 2, 8),
+            source_sheet="Daily Report - FT",
+        ))
+        db.add(WorkLog(
+            ticket_id_raw="SUPPORT-FEB",
+            workstream="FT",
+            tester_name_raw="Tester C",
+            work_date=date(2026, 2, 10),
+            source_sheet="Daily Report - FT",
+        ))
         db.commit()
 
         rows = backlog_metrics(db, start=date(2026, 1, 1), end=date(2026, 2, 28))
@@ -116,7 +134,7 @@ def test_backlog_metrics_include_preexisting_open_tickets_and_monthly_movements(
 
     assert rows == [
         {"month": "2026-01", "created": 1, "closed": 0, "month_end_backlog": 1},
-        {"month": "2026-02", "created": 1, "closed": 1, "month_end_backlog": 2},
+        {"month": "2026-02", "created": 2, "closed": 1, "month_end_backlog": 2},
     ]
     assert dq_rows == [
         {"month": "2026-01", "created": 1, "closed": 0, "month_end_backlog": 1},

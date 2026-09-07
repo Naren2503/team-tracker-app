@@ -34,27 +34,81 @@ def ticket_category_matches(ticket_id: str | None, category: str | None) -> bool
 
 
 def backlog_metrics(db: Session, start: date, end: date, tester: str | None = None, status: str | None = None, ticket_category: str | None = None) -> list[dict]:
-    query = select(TrackerRecord).where(TrackerRecord.deleted_at.is_(None), TrackerRecord.date_started.is_not(None))
-    if tester:
-        query = query.where(TrackerRecord.tester_name_raw == tester)
+    query = select(TrackerRecord).where(TrackerRecord.deleted_at.is_(None))
     if status:
         query = query.where(TrackerRecord.status == status)
     records = db.execute(query).scalars().all()
     if ticket_category:
         records = [record for record in records if ticket_category_matches(record.ticket_id, ticket_category)]
 
+    record_ids = {record.id for record in records}
+    records_by_ticket = {(record.ticket_id or "").strip().casefold(): record for record in records}
+    ft_logs = db.execute(select(WorkLog).where(WorkLog.deleted_at.is_(None), WorkLog.source_sheet == "Daily Report - FT")).scalars().all()
+    if tester:
+        tester_record_ids = set()
+        for log in ft_logs:
+            matched_record = records_by_ticket.get((log.ticket_id_raw or "").strip().casefold())
+            target_id = log.tracker_record_id if log.tracker_record_id in record_ids else (matched_record.id if matched_record else None)
+            if log.tester_name_raw == tester and target_id is not None:
+                tester_record_ids.add(target_id)
+        records = [record for record in records if record.tester_name_raw == tester or record.id in tester_record_ids]
+        record_ids = {record.id for record in records}
+        records_by_ticket = {(record.ticket_id or "").strip().casefold(): record for record in records}
+
+    effective_start_dates: dict[int, date | None] = {record.id: None for record in records}
+    for log in ft_logs:
+        record = records_by_ticket.get((log.ticket_id_raw or "").strip().casefold())
+        target_id = log.tracker_record_id if log.tracker_record_id in record_ids else (record.id if record else None)
+        if target_id is None or not log.work_date:
+            continue
+        current_start = effective_start_dates.get(target_id)
+        if current_start is None or log.work_date < current_start:
+            effective_start_dates[target_id] = log.work_date
+    for record in records:
+        if effective_start_dates[record.id] is None:
+            effective_start_dates[record.id] = record.date_started
+
+    created_dates_by_ticket = {
+        (record.ticket_id or "").strip().casefold(): effective_start_dates[record.id]
+        for record in records
+        if effective_start_dates[record.id]
+    }
+    eligible_ft_ticket_keys = {
+        (log.ticket_id_raw or "").strip().casefold()
+        for log in ft_logs
+        if (not tester or log.tester_name_raw == tester)
+        and ticket_category_matches(log.ticket_id_raw, ticket_category)
+    }
+    if not status:
+        for log in ft_logs:
+            key = (log.ticket_id_raw or "").strip().casefold()
+            if key not in eligible_ft_ticket_keys or not log.work_date:
+                continue
+            current_start = created_dates_by_ticket.get(key)
+            if current_start is None or log.work_date < current_start:
+                created_dates_by_ticket[key] = log.work_date
+
+    def effective_end_date(record: TrackerRecord) -> date | None:
+        start_date = effective_start_dates.get(record.id)
+        end_date = record.date_ended
+        if start_date and end_date and end_date < start_date and end_date.day <= 12:
+            swapped_end_date = date(end_date.year, end_date.day, end_date.month)
+            if swapped_end_date >= start_date:
+                return swapped_end_date
+        return end_date
+
     rows = []
     cursor = start.replace(day=1)
     final_month = end.replace(day=1)
     while cursor <= final_month:
         month_end = date(cursor.year, cursor.month, monthrange(cursor.year, cursor.month)[1])
-        created = [record for record in records if cursor <= record.date_started <= month_end]
-        closed = [record for record in records if record.date_ended and cursor <= record.date_ended <= month_end]
+        created = [created_date for created_date in created_dates_by_ticket.values() if cursor <= created_date <= month_end]
+        closed = [record for record in records if effective_end_date(record) and cursor <= effective_end_date(record) <= month_end]
         backlog = [
             record for record in records
-            if record.date_started <= month_end
+            if effective_start_dates.get(record.id) and effective_start_dates[record.id] <= month_end
             and is_active_backlog_status(record.status)
-            and (record.date_ended is None or record.date_ended > month_end)
+            and (effective_end_date(record) is None or effective_end_date(record) > month_end)
         ]
         rows.append({
             "month": cursor.strftime("%Y-%m"),
