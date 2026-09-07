@@ -6,6 +6,12 @@ function showNotice(message, isError = false) {
   notice.style.background = isError ? 'rgba(180,35,24,.1)' : 'rgba(23,107,93,.1)';
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[character]);
+}
+
 function filterTable(inputId, tableId) {
   const term = document.getElementById(inputId).value.toLowerCase();
   document.querySelectorAll(`#${tableId} tbody tr`).forEach((row) => {
@@ -200,17 +206,17 @@ async function refreshDashboard() {
   const weeklyCards = document.getElementById('weeklyCards');
   if (weeklyCards) weeklyCards.innerHTML = [['Total Tickets', data.total_records], ['Test Cases', data.passed_tc + data.failed_tc], ['Test Steps', data.passed_steps + data.failed_steps]].map(([label, value]) => `<article><span>${label}</span><strong>${value}</strong></article>`).join('');
   const utilizationChart = document.getElementById('utilizationChart');
-  if (utilizationChart) utilizationChart.innerHTML = Object.entries(data.utilization).map(([label, value]) => `<button><span>${label}</span><i style="width: ${Math.min(value, 100)}%"></i><b>${value}%</b></button>`).join('');
+  if (utilizationChart) utilizationChart.innerHTML = Object.entries(data.utilization).map(([label, value]) => `<button><span>${escapeHtml(label)}</span><i style="width: ${Math.min(value, 100)}%"></i><b>${value}%</b></button>`).join('');
   const ageList = document.querySelector('.age-list');
-  if (ageList) ageList.innerHTML = data.ticket_ageing.slice(0, 8).map((ticket) => `<div><span>${ticket.ticket_id}</span><b>${ticket.age_days ?? '-'}d</b></div>`).join('');
+  if (ageList) ageList.innerHTML = data.ticket_ageing.slice(0, 8).map((ticket) => `<div><span>${escapeHtml(ticket.ticket_id)}</span><b>${ticket.age_days ?? '-'}d</b></div>`).join('');
   const ageSummary = document.getElementById('ageSummary');
-  if (ageSummary) ageSummary.innerHTML = data.ticket_ageing.slice(0, 8).map((ticket) => `<div><span>${ticket.ticket_id} · ${ticket.tester}</span><b>${ticket.age_days ?? '-'}d</b></div>`).join('');
+  if (ageSummary) ageSummary.innerHTML = data.ticket_ageing.slice(0, 8).map((ticket) => `<div><span>${escapeHtml(ticket.ticket_id)} · ${escapeHtml(ticket.tester)}</span><b>${ticket.age_days ?? '-'}d</b></div>`).join('');
   const statusSummary = document.getElementById('statusSummary');
   if (statusSummary) statusSummary.innerHTML = [['Completed', data.status_counts.completed], ['In progress', data.status_counts.in_progress], ['Pending', data.status_counts.pending], ['Blocked', data.status_counts.blocked]].map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`).join('');
   const testerSummary = document.getElementById('testerSummary');
-  if (testerSummary) testerSummary.innerHTML = Object.entries(data.by_tester).map(([label, count]) => `<div><span>${label}</span><b>${count} tickets</b></div>`).join('');
+  if (testerSummary) testerSummary.innerHTML = Object.entries(data.by_tester).map(([label, count]) => `<div><span>${escapeHtml(label)}</span><b>${count} tickets</b></div>`).join('');
   const reportTickets = document.querySelector('#reportTickets tbody');
-  if (reportTickets) reportTickets.innerHTML = data.ticket_ageing.map((ticket) => `<tr><td>${ticket.ticket_id}</td><td>${ticket.tester}</td>${view === 'monthly' ? `<td>${ticket.logged_hours}</td>` : ''}<td>${ticket.start_date || '-'}</td><td title="${ticket.date_warning || ''}">${ticket.end_date || '-'}</td><td><span class="pill">${ticket.status}</span></td><td>${ticket.age_days == null ? '-' : `${ticket.age_days}d`}</td><td class="comment">${ticket.comments}</td></tr>`).join('');
+  if (reportTickets) reportTickets.innerHTML = data.ticket_ageing.map((ticket) => `<tr><td>${escapeHtml(ticket.ticket_id)}</td><td>${escapeHtml(ticket.tester)}</td>${view === 'monthly' ? `<td>${ticket.logged_hours}</td>` : ''}<td>${escapeHtml(ticket.start_date || '-')}</td><td title="${escapeHtml(ticket.date_warning || '')}">${escapeHtml(ticket.end_date || '-')}</td><td><span class="pill">${escapeHtml(ticket.status)}</span></td><td>${ticket.age_days == null ? '-' : `${ticket.age_days}d`}</td><td class="comment">${escapeHtml(ticket.comments)}</td></tr>`).join('');
   showNotice('Dashboard refreshed');
 }
 

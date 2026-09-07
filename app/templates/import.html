@@ -10,7 +10,7 @@
     <div style="background: var(--bg); padding: 12px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 14px;">
       <label style="font-size: 0.82rem; margin-bottom: 4px;">Your Live Webhook Endpoint:</label>
       <div style="display: flex; gap: 8px;">
-        <input type="text" id="webhookUrl" readonly value="https://naren2503-team-tracker.onrender.com/api/imports/webhook?token=team-tracker-sync&mode=merge" style="font-family: monospace; font-size: 0.85rem;">
+        <input type="text" id="webhookUrl" readonly value="https://naren2503-team-tracker.onrender.com/api/imports/webhook?token=&lt;WEBHOOK_TOKEN&gt;&amp;mode=merge" style="font-family: monospace; font-size: 0.85rem;">
         <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('webhookUrl').value); showNotice('Webhook URL copied to clipboard!');" style="white-space: nowrap;">Copy</button>
       </div>
     </div>

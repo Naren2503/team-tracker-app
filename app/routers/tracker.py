@@ -36,7 +36,7 @@ def list_records(q: str | None = None, status_filter: str | None = Query(default
 def create_record(payload: TrackerRecordIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if CREATE_RECORDS not in user_permissions(user, db):
         raise HTTPException(status_code=403, detail="Permission denied")
-    record = TrackerRecord(**payload.model_dump(exclude={"version"}), created_by_id=user.id, updated_by_id=user.id, owner_user_id=payload.owner_user_id or user.id)
+    record = TrackerRecord(**payload.model_dump(exclude={"version", "owner_user_id"}), created_by_id=user.id, updated_by_id=user.id, owner_user_id=payload.owner_user_id or user.id)
     db.add(record)
     db.flush()
     audit(db, user, "create", "tracker_record", record.id, None, payload.model_dump())

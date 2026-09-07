@@ -381,8 +381,8 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
 
 
 def filter_options(db: Session) -> dict:
-    tracker_testers = db.execute(select(TrackerRecord.tester_name_raw).where(TrackerRecord.tester_name_raw.is_not(None)).distinct()).scalars().all()
+    tracker_testers = db.execute(select(TrackerRecord.tester_name_raw).where(TrackerRecord.deleted_at.is_(None), TrackerRecord.tester_name_raw.is_not(None)).distinct()).scalars().all()
     ft_testers = db.execute(select(WorkLog.tester_name_raw).where(WorkLog.deleted_at.is_(None), WorkLog.source_sheet == "Daily Report - FT", WorkLog.tester_name_raw.is_not(None)).distinct()).scalars().all()
     testers = sorted(set(tracker_testers) | set(ft_testers))
-    statuses = db.execute(select(TrackerRecord.status).where(TrackerRecord.status.is_not(None)).distinct().order_by(TrackerRecord.status)).scalars().all()
+    statuses = db.execute(select(TrackerRecord.status).where(TrackerRecord.deleted_at.is_(None), TrackerRecord.status.is_not(None)).distinct().order_by(TrackerRecord.status)).scalars().all()
     return {"testers": testers, "statuses": statuses}

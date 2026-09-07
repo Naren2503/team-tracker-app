@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import User
 from ..security import create_access_token, verify_password
+from ..config import get_settings
 
 router = APIRouter()
 
@@ -15,7 +16,7 @@ def login(email: str = Form(...), password: str = Form(...), db: Session = Depen
     if not user or not user.active or not verify_password(password, user.password_hash):
         return RedirectResponse("/login?error=Invalid%20email%20or%20password", status_code=status.HTTP_303_SEE_OTHER)
     response = RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
-    response.set_cookie("access_token", create_access_token(str(user.id)), httponly=True, secure=False, samesite="lax")
+    response.set_cookie("access_token", create_access_token(str(user.id)), httponly=True, secure=get_settings().secure_cookies, samesite="lax")
     return response
 
 

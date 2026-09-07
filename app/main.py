@@ -7,21 +7,25 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from .database import Base, engine, get_db
+from .config import get_settings
 from .dependencies import current_user_or_none, user_permissions
 from .models import AuditLog, ImportBatch, TrackerRecord, User
+from .permissions import IMPORT_EXCEL, VIEW_ALL_RECORDS
 from .routers import admin, audit, auth, dashboard, exports, imports, tracker
 from .seed import seed_reference_data
 from .services.dashboard import backlog_metrics, dashboard_metrics, filter_options
 
 BASE_DIR = Path(__file__).resolve().parent
+settings = get_settings()
 app = FastAPI(title="Team Tracker", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=[origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -123,7 +127,11 @@ def backlog_page(request: Request, db: Session = Depends(get_db), user: User | N
 def tracker_page(request: Request, db: Session = Depends(get_db), user: User | None = Depends(current_user_or_none)):
     if not user:
         return RedirectResponse("/login")
-    records = db.execute(select(TrackerRecord).where(TrackerRecord.deleted_at.is_(None)).order_by(TrackerRecord.updated_at.desc()).limit(5000)).scalars().all()
+    permissions = user_permissions(user, db)
+    stmt = select(TrackerRecord).where(TrackerRecord.deleted_at.is_(None))
+    if VIEW_ALL_RECORDS not in permissions:
+        stmt = stmt.where(or_(TrackerRecord.owner_user_id == user.id, TrackerRecord.created_by_id == user.id))
+    records = db.execute(stmt.order_by(TrackerRecord.updated_at.desc()).limit(5000)).scalars().all()
     context = page_context(request, user, db)
     context.update({"records": records, "today": date.today(), "filters": filter_options(db), "page": "tracker"})
     return templates.TemplateResponse("tracker.html", context)
@@ -133,6 +141,8 @@ def tracker_page(request: Request, db: Session = Depends(get_db), user: User | N
 def import_page(request: Request, db: Session = Depends(get_db), user: User | None = Depends(current_user_or_none)):
     if not user:
         return RedirectResponse("/login")
+    if IMPORT_EXCEL not in user_permissions(user, db):
+        return RedirectResponse("/")
     imports_list = db.execute(select(ImportBatch).order_by(ImportBatch.started_at.desc()).limit(20)).scalars().all()
     context = page_context(request, user, db)
     context.update({"imports": imports_list, "page": "import"})

@@ -1,6 +1,7 @@
 import os
 os.environ.setdefault("SECRET_KEY", "test-secret-key-that-is-long-enough")
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
+os.environ.setdefault("WEBHOOK_TOKEN", "test-webhook-secret")
 
 import pytest
 from fastapi.testclient import TestClient

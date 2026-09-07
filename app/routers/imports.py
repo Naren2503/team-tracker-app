@@ -1,4 +1,5 @@
 import csv
+import hmac
 from io import StringIO
 from typing import Any
 import httpx
@@ -25,6 +26,14 @@ class SyncUrlRequest(BaseModel):
 class OfficeScriptSyncRequest(BaseModel):
     sheets: dict[str, list[list[Any]]]
     mode: str = "replace"
+
+
+def verify_webhook_token(token: str) -> None:
+    expected_token = get_settings().webhook_token
+    if not expected_token:
+        raise HTTPException(status_code=503, detail="Webhook sync is not configured")
+    if not hmac.compare_digest(token, expected_token):
+        raise HTTPException(status_code=403, detail="Invalid token")
 
 
 def validate_upload(file_name: str, content: bytes) -> None:
@@ -113,9 +122,7 @@ async def webhook_import(
     mode: str = Query("merge"),
     db: Session = Depends(get_db),
 ):
-    settings = get_settings()
-    if token != settings.secret_key and token != "team-tracker-sync":
-        raise HTTPException(status_code=403, detail="Invalid webhook token")
+    verify_webhook_token(token)
 
     content_type = request.headers.get("content-type", "")
     content = b""
@@ -154,9 +161,7 @@ async def office_script_sync(
     token: str = Query(...),
     db: Session = Depends(get_db),
 ):
-    settings = get_settings()
-    if token != settings.secret_key and token != "team-tracker-sync":
-        raise HTTPException(status_code=403, detail="Invalid token")
+    verify_webhook_token(token)
 
     if not payload.sheets:
         raise HTTPException(status_code=400, detail="No sheet data provided in payload")

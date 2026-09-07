@@ -12,5 +12,15 @@ services:
     envVars:
       - key: SECRET_KEY
         generateValue: true
+      - key: WEBHOOK_TOKEN
+        generateValue: true
+      - key: SECURE_COOKIES
+        value: "true"
+      - key: CORS_ORIGINS
+        value: "https://naren-tracker-launch.onrender.com"
       - key: DATABASE_URL
+        sync: false
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
         sync: false

@@ -14,7 +14,8 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 @router.get("/users")
 def users(db: Session = Depends(get_db), actor: User = Depends(require_permission(MANAGE_USERS))):
-    return db.execute(select(User).order_by(User.email)).scalars().all()
+    users_list = db.execute(select(User).order_by(User.email)).scalars().all()
+    return [{"id": user.id, "email": user.email, "display_name": user.display_name, "role_id": user.role_id, "active": user.active} for user in users_list]
 
 
 @router.get("/roles")
@@ -24,10 +25,13 @@ def roles(db: Session = Depends(get_db), actor: User = Depends(require_permissio
 
 @router.post("/users")
 def create_user(payload: UserCreate, db: Session = Depends(get_db), actor: User = Depends(require_permission(MANAGE_USERS))):
+    email = payload.email.strip().lower()
+    if db.execute(select(User).where(User.email == email)).scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Email already exists")
     role = db.get(Role, payload.role_id)
     if not role:
         raise HTTPException(status_code=400, detail="Role does not exist")
-    user = User(email=payload.email.lower(), display_name=payload.display_name, password_hash=hash_password(payload.password), role_id=payload.role_id, active=payload.active)
+    user = User(email=email, display_name=payload.display_name.strip(), password_hash=hash_password(payload.password), role_id=payload.role_id, active=payload.active)
     db.add(user)
     db.flush()
     audit(db, actor, "create_user", "user", user.id, None, {"email": user.email, "role_id": user.role_id})
@@ -39,9 +43,13 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db), actor: User 
 def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db), actor: User = Depends(require_permission(MANAGE_USERS))):
     if user_id == actor.id and payload.role_id is not None:
         raise HTTPException(status_code=400, detail="You cannot change your own role")
+    if user_id == actor.id and payload.active is False:
+        raise HTTPException(status_code=400, detail="You cannot deactivate your own account")
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if payload.role_id is not None and not db.get(Role, payload.role_id):
+        raise HTTPException(status_code=400, detail="Role does not exist")
     old = {"display_name": user.display_name, "role_id": user.role_id, "active": user.active}
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(user, field, value)

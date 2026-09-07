@@ -21,7 +21,7 @@ pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-Edit `.env` and set a long random `SECRET_KEY`, plus a development `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`.
+Edit `.env` and set long, separate random values for `SECRET_KEY` and `WEBHOOK_TOKEN`, plus a development `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`.
 
 ## Run
 
@@ -49,6 +49,8 @@ Supported modes:
 
 - Do not use `.env.example` values in production.
 - Put production secrets in environment variables or a secret manager.
+- Set `SECURE_COOKIES=true` when the app is served over HTTPS.
+- Keep `WEBHOOK_TOKEN` separate from `SECRET_KEY`; append it to the Office Script or Power Automate webhook URL at configuration time.
 - Use PostgreSQL for shared deployment.
 - Put the app behind HTTPS.
 - Prefer Microsoft Entra ID for organization login in production.

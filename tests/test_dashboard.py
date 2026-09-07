@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 import pytest
 from sqlalchemy import create_engine
@@ -7,12 +7,27 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base
 from app.models import TrackerRecord, WorkLog
-from app.services.dashboard import backlog_metrics, dashboard_metrics, is_active_backlog_status
+from app.services.dashboard import backlog_metrics, dashboard_metrics, filter_options, is_active_backlog_status
 
 
 def login(client, email="admin@test.local"):
     response = client.post("/login", data={"email": email, "password": "Password12345!"}, follow_redirects=False)
     assert response.status_code == 303
+
+
+def test_filter_options_exclude_soft_deleted_tracker_values():
+    engine = create_engine("sqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as db:
+        db.add_all([
+            TrackerRecord(ticket_id="ACTIVE", tester_name_raw="Active Tester", status="In progress"),
+            TrackerRecord(ticket_id="DELETED", tester_name_raw="Deleted Tester", status="Obsolete", deleted_at=datetime.utcnow()),
+        ])
+        db.commit()
+
+        options = filter_options(db)
+
+    assert options == {"testers": ["Active Tester"], "statuses": ["In progress"]}
 
 
 @pytest.mark.parametrize("status", [

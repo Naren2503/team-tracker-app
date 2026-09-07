@@ -2,12 +2,13 @@ import csv
 from io import StringIO
 from fastapi import APIRouter, Depends
 from fastapi.responses import PlainTextResponse
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..dependencies import require_permission
 from ..models import TrackerRecord, User
-from ..permissions import EXPORT_DATA
+from ..permissions import EXPORT_DATA, VIEW_ALL_RECORDS
+from ..dependencies import user_permissions
 from ..services.audit import audit
 
 router = APIRouter(prefix="/api/exports", tags=["exports"])
@@ -15,7 +16,10 @@ router = APIRouter(prefix="/api/exports", tags=["exports"])
 
 @router.get("/tracker.csv")
 def export_tracker(db: Session = Depends(get_db), user: User = Depends(require_permission(EXPORT_DATA))):
-    records = db.execute(select(TrackerRecord).where(TrackerRecord.deleted_at.is_(None)).order_by(TrackerRecord.ticket_id)).scalars().all()
+    stmt = select(TrackerRecord).where(TrackerRecord.deleted_at.is_(None))
+    if VIEW_ALL_RECORDS not in user_permissions(user, db):
+        stmt = stmt.where(or_(TrackerRecord.owner_user_id == user.id, TrackerRecord.created_by_id == user.id))
+    records = db.execute(stmt.order_by(TrackerRecord.ticket_id)).scalars().all()
     output = StringIO()
     writer = csv.writer(output)
     writer.writerow(["Ticket ID", "Date Started", "Date Ended", "Tester", "Status", "Zephyr Upload", "Comments", "Version"])

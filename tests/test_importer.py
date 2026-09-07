@@ -2,7 +2,12 @@ from io import BytesIO
 from openpyxl import Workbook
 from datetime import date
 import pytest
-from app.services.importer import normalize_status, parse_date, preview_import
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
+from app.database import Base
+from app.models import Role, TrackerRecord, User, WorkLog
+from app.services.importer import import_grid_data, normalize_status, parse_date, preview_import
 
 
 def make_workbook():
@@ -38,3 +43,32 @@ def test_ambiguous_slash_date_uses_workbook_month_day_order():
 ])
 def test_normalize_status_preserves_active_workflow_stage(source, expected):
     assert normalize_status(source) == expected
+
+
+@pytest.mark.parametrize("mode", ["merge", "replace"])
+def test_import_links_worklog_to_tracker_case_insensitively(mode):
+    engine = create_engine("sqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as db:
+        role = Role(name="Admin", description="Admin")
+        db.add(role)
+        db.flush()
+        actor = User(email="admin@test.local", display_name="Admin", password_hash="hash", role_id=role.id, active=True)
+        db.add(actor)
+        db.commit()
+        sheets = {
+            "DQ Task Tracker": [
+                ["Ticket ID", "Date Started", "Date Ended", "Tester", "DQ Status"],
+                ["DQ9001", "2026-01-01", None, "Tester", "In progress"],
+            ],
+            "Daily Report - FT": [
+                ["TICKET ID", "TESTER", "TASK", "PRIORITY", "DATE", "work log (hrs)"],
+                ["dq9001", "Tester", "Execution", "High", "2026-01-02", 2],
+            ],
+        }
+
+        import_grid_data(db, actor, "test", sheets, mode)
+
+        tracker = db.query(TrackerRecord).filter(TrackerRecord.deleted_at.is_(None)).one()
+        work_log = db.query(WorkLog).filter(WorkLog.deleted_at.is_(None)).one()
+        assert work_log.tracker_record_id == tracker.id

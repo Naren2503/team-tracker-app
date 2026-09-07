@@ -44,6 +44,10 @@ def clean_text(value: Any) -> str | None:
     return text or None
 
 
+def ticket_key(value: Any) -> str:
+    return (clean_text(value) or "").casefold()
+
+
 def parse_number(value: Any) -> float | None:
     text = clean_text(value)
     if text is None or text == "-":
@@ -297,7 +301,7 @@ def import_parsed_rows(db: Session, actor: User, file_name: str, file_hash: str,
         existing_trackers = {}
         existing_worklogs = {}
     else:
-        existing_trackers = {r.ticket_id: r for r in db.execute(select(TrackerRecord).where(TrackerRecord.deleted_at.is_(None))).scalars()}
+        existing_trackers = {ticket_key(r.ticket_id): r for r in db.execute(select(TrackerRecord).where(TrackerRecord.deleted_at.is_(None))).scalars()}
         existing_worklogs = {(w.source_sheet, w.source_row): w for w in db.execute(select(WorkLog).where(WorkLog.deleted_at.is_(None))).scalars()}
 
     success = rejected = 0
@@ -316,14 +320,15 @@ def import_parsed_rows(db: Session, actor: User, file_name: str, file_hash: str,
             try:
                 payload = parsed_row.payload
                 ticket_id = payload["ticket_id"]
-                existing = existing_trackers.get(ticket_id)
+                normalized_ticket_id = ticket_key(ticket_id)
+                existing = existing_trackers.get(normalized_ticket_id)
                 if mode == "add" and existing:
                     raise ValueError("Duplicate tracker ticket")
                 if existing and mode == "merge":
                     record = existing
                 else:
                     record = TrackerRecord(ticket_id=ticket_id)
-                    existing_trackers[ticket_id] = record
+                    existing_trackers[normalized_ticket_id] = record
                     new_trackers_to_add.append(record)
 
                 record.date_started = payload["date_started"]
@@ -363,7 +368,7 @@ def import_parsed_rows(db: Session, actor: User, file_name: str, file_hash: str,
             try:
                 payload = parsed_row.payload
                 ticket_id_raw = payload.get("ticket_id_raw") or "GENERAL"
-                matched_tracker = existing_trackers.get(ticket_id_raw)
+                matched_tracker = existing_trackers.get(ticket_key(ticket_id_raw))
                 tracker_record_id = matched_tracker.id if matched_tracker else None
 
                 key = (parsed_row.sheet, parsed_row.row_number)
