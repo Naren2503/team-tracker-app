@@ -273,15 +273,21 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
             dated_logs = [log for log in selected_ticket_logs if log.work_date]
             first_log = min(dated_logs, key=lambda log: log.work_date) if dated_logs else selected_ticket_logs[0]
             latest_comment_log = max((log for log in selected_ticket_logs if log.daily_comments), key=lambda log: log.work_date or date.min, default=None)
+            testers_by_name = {
+                log.tester_name_raw.strip().casefold(): log.tester_name_raw.strip()
+                for log in selected_ticket_logs
+                if log.tester_name_raw and log.tester_name_raw.strip()
+            }
+            tester_names = sorted(testers_by_name.values(), key=str.casefold)
             unmatched_ticket_details.append({
                 "ticket_id": (first_log.ticket_id_raw or "GENERAL").strip(),
                 "status": "Not available",
-                "tester": first_log.tester_name_raw or "Unassigned",
+                "tester": ", ".join(tester_names) if tester_names else "Unassigned",
                 "logged_hours": round(sum(log.work_log_hours or 0 for log in selected_ticket_logs), 2),
                 "start_date": first_log.work_date.isoformat() if first_log.work_date else None,
                 "end_date": None,
                 "date_warning": None,
-                "comments": latest_comment_log.daily_comments if latest_comment_log else "",
+                "comments": "" if len(tester_names) > 1 else (latest_comment_log.daily_comments if latest_comment_log else ""),
                 "age_days": None,
             })
 

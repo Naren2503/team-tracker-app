@@ -183,6 +183,15 @@ def test_monthly_others_details_include_ft_ticket_without_dq_record():
                 daily_comments="Completed analysis",
                 source_sheet="Daily Report - FT",
             ),
+            WorkLog(
+                ticket_id_raw="support-42",
+                workstream="FT",
+                tester_name_raw="Second Tester",
+                work_date=date(2026, 1, 15),
+                work_log_hours=2,
+                daily_comments="Reviewed analysis",
+                source_sheet="Daily Report - FT",
+            ),
         ])
         db.commit()
 
@@ -198,12 +207,12 @@ def test_monthly_others_details_include_ft_ticket_without_dq_record():
     assert metrics["ticket_ageing"] == [{
         "ticket_id": "SUPPORT-42",
         "status": "Not available",
-        "tester": "FT Tester",
-        "logged_hours": 3,
+        "tester": "FT Tester, Second Tester",
+        "logged_hours": 5,
         "start_date": "2026-01-12",
         "end_date": None,
         "date_warning": None,
-        "comments": "Completed analysis",
+        "comments": "",
         "age_days": None,
     }]
 
