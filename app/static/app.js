@@ -105,7 +105,15 @@ function renderLifecycleLine(element, trend) {
   const x = (index) => 40 + index * (width / Math.max(labels.length - 1, 1));
   const max = Math.max(...series.flatMap((item) => labels.map((label) => trend[label][item.key])), 1);
   const y = (label, item) => 220 - trend[label][item.key] / max * 170;
-  const labelY = (label, item) => Math.max(16, Math.min(y(label, item) + item.labelOffset, 238));
+  const labelY = (label, item) => {
+    const pointY = y(label, item);
+    const otherPointY = y(label, series.find((candidate) => candidate.key !== item.key));
+    let position = pointY + item.labelOffset;
+    if (Math.abs(position - otherPointY) < 18) {
+      position = item.key === 'created' ? otherPointY - 20 : otherPointY + 22;
+    }
+    return Math.max(16, Math.min(position, 238));
+  };
   const escapeMarkup = (value) => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
   element.innerHTML = series.map((item) => {
     const points = labels.map((label, index) => `${x(index)},${y(label, item)}`).join(' ');
