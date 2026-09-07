@@ -105,6 +105,7 @@ def test_backlog_metrics_include_preexisting_open_tickets_and_monthly_movements(
         db.add_all([
             TrackerRecord(ticket_id="DQ-OLD", tester_name_raw="Tester A", date_started=date(2025, 12, 10), status="In progress"),
             TrackerRecord(ticket_id="DQ-CLOSED", tester_name_raw="Tester A", date_started=date(2026, 1, 5), date_ended=date(2026, 2, 12), status="Completed"),
+            TrackerRecord(ticket_id="DQ-FEB-CLOSED", tester_name_raw="Tester A", date_started=date(2026, 2, 3), date_ended=date(2026, 2, 20), status="Completed"),
             TrackerRecord(ticket_id="HYDRAS-OPEN", tester_name_raw="Tester B", date_started=date(2026, 2, 8), status="In progress"),
             TrackerRecord(ticket_id="DQ-NO-FT", tester_name_raw="Tester A", date_started=date(2026, 2, 9), status="Completed"),
             TrackerRecord(ticket_id="DQ-DONE-NO-END", tester_name_raw="Tester A", date_started=date(2025, 11, 5), status="Completed"),
@@ -113,11 +114,13 @@ def test_backlog_metrics_include_preexisting_open_tickets_and_monthly_movements(
         db.flush()
         old_record = db.query(TrackerRecord).filter_by(ticket_id="DQ-OLD").one()
         closed_record = db.query(TrackerRecord).filter_by(ticket_id="DQ-CLOSED").one()
+        february_closed_record = db.query(TrackerRecord).filter_by(ticket_id="DQ-FEB-CLOSED").one()
         february_record = db.query(TrackerRecord).filter_by(ticket_id="HYDRAS-OPEN").one()
         february_record.date_started = date(2026, 1, 20)
         db.add_all([
             WorkLog(tracker_record_id=old_record.id, ticket_id_raw=old_record.ticket_id, workstream="FT", tester_name_raw="Tester A", work_date=date(2025, 12, 10), source_sheet="Daily Report - FT"),
             WorkLog(tracker_record_id=closed_record.id, ticket_id_raw=closed_record.ticket_id, workstream="FT", tester_name_raw="Tester A", work_date=date(2026, 1, 5), source_sheet="Daily Report - FT"),
+            WorkLog(tracker_record_id=february_closed_record.id, ticket_id_raw=february_closed_record.ticket_id, workstream="FT", tester_name_raw="Tester A", work_date=date(2026, 2, 3), source_sheet="Daily Report - FT"),
             WorkLog(tracker_record_id=february_record.id, ticket_id_raw=february_record.ticket_id, workstream="FT", tester_name_raw="Tester B", work_date=date(2026, 2, 8), source_sheet="Daily Report - FT"),
         ])
         db.add(WorkLog(
@@ -134,11 +137,11 @@ def test_backlog_metrics_include_preexisting_open_tickets_and_monthly_movements(
 
     assert rows == [
         {"month": "2026-01", "created": 1, "closed": 0, "month_end_backlog": 1},
-        {"month": "2026-02", "created": 1, "closed": 1, "month_end_backlog": 2},
+        {"month": "2026-02", "created": 2, "closed": 1, "month_end_backlog": 2},
     ]
     assert dq_rows == [
         {"month": "2026-01", "created": 1, "closed": 0, "month_end_backlog": 1},
-        {"month": "2026-02", "created": 0, "closed": 1, "month_end_backlog": 1},
+        {"month": "2026-02", "created": 1, "closed": 1, "month_end_backlog": 1},
     ]
 
 

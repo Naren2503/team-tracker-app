@@ -64,12 +64,6 @@ def backlog_metrics(db: Session, start: date, end: date, tester: str | None = No
         current_start = effective_start_dates.get(target_id)
         if current_start is None or log.work_date < current_start:
             effective_start_dates[target_id] = log.work_date
-    created_dates_by_ticket = {
-        (record.ticket_id or "").strip().casefold(): effective_start_dates[record.id]
-        for record in records
-        if effective_start_dates[record.id]
-    }
-
     def effective_end_date(record: TrackerRecord) -> date | None:
         start_date = effective_start_dates.get(record.id)
         end_date = record.date_ended
@@ -84,8 +78,11 @@ def backlog_metrics(db: Session, start: date, end: date, tester: str | None = No
     final_month = end.replace(day=1)
     while cursor <= final_month:
         month_end = date(cursor.year, cursor.month, monthrange(cursor.year, cursor.month)[1])
-        created = [created_date for created_date in created_dates_by_ticket.values() if cursor <= created_date <= month_end]
-        closed = [record for record in records if effective_end_date(record) and cursor <= effective_end_date(record) <= month_end]
+        created_records = [
+            record for record in records
+            if effective_start_dates.get(record.id) and cursor <= effective_start_dates[record.id] <= month_end
+        ]
+        closed = [record for record in created_records if effective_end_date(record) and cursor <= effective_end_date(record) <= month_end]
         backlog = [
             record for record in records
             if effective_start_dates.get(record.id) and effective_start_dates[record.id] <= month_end
@@ -94,7 +91,7 @@ def backlog_metrics(db: Session, start: date, end: date, tester: str | None = No
         ]
         rows.append({
             "month": cursor.strftime("%Y-%m"),
-            "created": len(created),
+            "created": len(created_records),
             "closed": len(closed),
             "month_end_backlog": len(backlog),
         })
