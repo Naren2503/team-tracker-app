@@ -64,10 +64,6 @@ def backlog_metrics(db: Session, start: date, end: date, tester: str | None = No
         current_start = effective_start_dates.get(target_id)
         if current_start is None or log.work_date < current_start:
             effective_start_dates[target_id] = log.work_date
-    for record in records:
-        if effective_start_dates[record.id] is None:
-            effective_start_dates[record.id] = record.date_started
-
     created_dates_by_ticket = {
         (record.ticket_id or "").strip().casefold(): effective_start_dates[record.id]
         for record in records
