@@ -228,10 +228,16 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
 
     def ticket_ageing_item(record: TrackerRecord) -> dict:
         start_date, end_date, warning = report_dates(record)
+        logged_hours = sum(
+            log.work_log_hours or 0
+            for log in logs
+            if log.tracker_record_id == record.id or ticket_key(log.ticket_id_raw) == ticket_key(record.ticket_id)
+        )
         return {
             "ticket_id": record.ticket_id,
             "status": record.status,
             "tester": report_testers.get(record.id, record.tester_name_raw or "Unassigned"),
+            "logged_hours": round(logged_hours, 2),
             "start_date": start_date.isoformat() if start_date else None,
             "end_date": end_date.isoformat() if end_date else None,
             "date_warning": warning,
@@ -275,6 +281,7 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
                 "ticket_id": (first_log.ticket_id_raw or "GENERAL").strip(),
                 "status": "Not available",
                 "tester": first_log.tester_name_raw or "Unassigned",
+                "logged_hours": round(sum(log.work_log_hours or 0 for log in selected_ticket_logs), 2),
                 "start_date": first_log.work_date.isoformat() if first_log.work_date else None,
                 "end_date": None,
                 "date_warning": None,

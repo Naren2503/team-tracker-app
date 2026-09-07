@@ -70,6 +70,7 @@ def test_monthly_report_uses_ft_activity_dates_and_dq_end_date():
     assert metrics["total_hours"] == 3
     assert metrics["total_testers"] == 1
     assert metrics["ticket_ageing"][0]["tester"] == "FT Tester"
+    assert metrics["ticket_ageing"][0]["logged_hours"] == 3
     assert metrics["ticket_ageing"][0]["start_date"] == "2026-01-25"
     assert metrics["ticket_ageing"][0]["end_date"] == "2026-02-20"
     assert metrics["ticket_ageing"][0]["age_days"] == 26
@@ -198,6 +199,7 @@ def test_monthly_others_details_include_ft_ticket_without_dq_record():
         "ticket_id": "SUPPORT-42",
         "status": "Not available",
         "tester": "FT Tester",
+        "logged_hours": 3,
         "start_date": "2025-12-20",
         "end_date": None,
         "date_warning": None,
