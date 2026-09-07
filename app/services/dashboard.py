@@ -26,26 +26,31 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
         log_query = log_query.where(WorkLog.tester_name_raw == tester)
     logs = db.execute(log_query).scalars().all()
 
+    def ticket_key(value: str | None) -> str:
+        return (value or "").strip().casefold()
+
     tracker = select(TrackerRecord).where(TrackerRecord.deleted_at.is_(None))
-    if tester:
-        if use_ft_activity:
-            tracker_ids = {log.tracker_record_id for log in logs if log.tracker_record_id is not None}
-            tracker = tracker.where(TrackerRecord.id.in_(tracker_ids))
-        else:
-            tracker = tracker.where(TrackerRecord.tester_name_raw == tester)
-    if status:
-        tracker = tracker.where(TrackerRecord.status == status)
     if use_ft_activity:
-        tracker_ids = {log.tracker_record_id for log in logs if log.tracker_record_id is not None}
-        tracker = tracker.where(TrackerRecord.id.in_(tracker_ids))
-    elif start:
-        tracker = tracker.where(TrackerRecord.date_started >= start)
-    if end and not use_ft_activity:
-        tracker = tracker.where(TrackerRecord.date_started <= end)
-    records = db.execute(tracker).scalars().all()
+        if status:
+            tracker = tracker.where(TrackerRecord.status == status)
+        candidate_records = db.execute(tracker).scalars().all()
+        linked_record_ids = {log.tracker_record_id for log in logs if log.tracker_record_id is not None}
+        activity_ticket_ids = {ticket_key(log.ticket_id_raw) for log in logs}
+        records = [record for record in candidate_records if record.id in linked_record_ids or ticket_key(record.ticket_id) in activity_ticket_ids]
+    else:
+        if tester:
+            tracker = tracker.where(TrackerRecord.tester_name_raw == tester)
+        if status:
+            tracker = tracker.where(TrackerRecord.status == status)
+        if start:
+            tracker = tracker.where(TrackerRecord.date_started >= start)
+        if end:
+            tracker = tracker.where(TrackerRecord.date_started <= end)
+        records = db.execute(tracker).scalars().all()
     if use_ft_activity and status:
         record_ids = {record.id for record in records}
-        logs = [log for log in logs if log.tracker_record_id in record_ids]
+        record_ticket_ids = {ticket_key(record.ticket_id) for record in records}
+        logs = [log for log in logs if log.tracker_record_id in record_ids or ticket_key(log.ticket_id_raw) in record_ticket_ids]
 
     def status_key(value: str | None) -> str:
         normalized = (value or "").lower()
@@ -189,21 +194,17 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
     report_testers: dict[int, str] = {}
     if use_ft_activity:
         record_ids = {record.id for record in records}
-        detail_logs = db.execute(
-            select(WorkLog).where(
-                WorkLog.deleted_at.is_(None),
-                WorkLog.source_sheet == "Daily Report - FT",
-                WorkLog.tracker_record_id.in_(record_ids),
-            )
-        ).scalars().all()
+        record_ids_by_ticket = {ticket_key(record.ticket_id): record.id for record in records}
+        detail_logs = db.execute(select(WorkLog).where(WorkLog.deleted_at.is_(None), WorkLog.source_sheet == "Daily Report - FT")).scalars().all()
         for log in detail_logs:
-            if log.tracker_record_id is None or not log.work_date:
+            target_record_id = log.tracker_record_id if log.tracker_record_id in record_ids else record_ids_by_ticket.get(ticket_key(log.ticket_id_raw))
+            if target_record_id is None or not log.work_date:
                 continue
-            current_start = report_start_dates.get(log.tracker_record_id)
+            current_start = report_start_dates.get(target_record_id)
             if current_start is None or log.work_date < current_start:
-                report_start_dates[log.tracker_record_id] = log.work_date
+                report_start_dates[target_record_id] = log.work_date
                 if log.tester_name_raw:
-                    report_testers[log.tracker_record_id] = log.tester_name_raw
+                    report_testers[target_record_id] = log.tester_name_raw
 
     ticket_ageing = [{"ticket_id": record.ticket_id, "status": record.status, "tester": report_testers.get(record.id, record.tester_name_raw or "Unassigned"), "start_date": (report_start_dates.get(record.id) if use_ft_activity else record.date_started).isoformat() if (report_start_dates.get(record.id) if use_ft_activity else record.date_started) else None, "end_date": record.date_ended.isoformat() if record.date_ended else None, "comments": record.comments or "", "age_days": age_days(record)} for record in records]
     ticket_ageing.sort(key=lambda item: item["age_days"] if item["age_days"] is not None else -1, reverse=True)

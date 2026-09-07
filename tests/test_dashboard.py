@@ -29,8 +29,8 @@ def test_monthly_report_uses_ft_activity_dates_and_dq_end_date():
         db.flush()
         db.add_all([
             WorkLog(
-                tracker_record_id=record.id,
-                ticket_id_raw=record.ticket_id,
+                tracker_record_id=None,
+                ticket_id_raw=" dq9001 ",
                 workstream="FT",
                 tester_name_raw="FT Tester",
                 work_date=date(2026, 1, 25),
@@ -38,7 +38,7 @@ def test_monthly_report_uses_ft_activity_dates_and_dq_end_date():
                 source_sheet="Daily Report - FT",
             ),
             WorkLog(
-                tracker_record_id=record.id,
+                tracker_record_id=None,
                 ticket_id_raw=record.ticket_id,
                 workstream="FT",
                 tester_name_raw="FT Tester",
@@ -71,6 +71,7 @@ def test_monthly_report_uses_ft_activity_dates_and_dq_end_date():
     assert metrics["ticket_ageing"][0]["tester"] == "FT Tester"
     assert metrics["ticket_ageing"][0]["start_date"] == "2026-01-25"
     assert metrics["ticket_ageing"][0]["end_date"] == "2026-02-20"
+    assert metrics["ticket_ageing"][0]["age_days"] == 26
 
 
 def test_week_filter_defaults_to_all_ft_logs_in_selected_month():

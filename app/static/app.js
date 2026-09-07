@@ -61,13 +61,15 @@ function renderSeriesLine(element, trend, series) {
 
 function scaleMixChart(element) {
   if (!element) return;
-  const bars = [...element.querySelectorAll('.mix-bars i')];
-  const values = bars.map((bar) => Number.parseFloat(bar.dataset.value) || 0);
-  const max = Math.max(...values, 1);
-  bars.forEach((bar) => {
-    const value = Number.parseFloat(bar.dataset.value) || 0;
-    bar.dataset.value = value;
-    bar.style.height = `${value ? 10 + value / max * 140 : 4}px`;
+  ['tickets', 'cases', 'steps'].forEach((series) => {
+    const bars = [...element.querySelectorAll(`.mix-bars .${series}`)];
+    const values = bars.map((bar) => Number.parseFloat(bar.dataset.value) || 0);
+    const max = Math.max(...values, 1);
+    bars.forEach((bar) => {
+      const value = Number.parseFloat(bar.dataset.value) || 0;
+      bar.style.height = `${value ? 12 + value / max * 138 : 4}px`;
+      bar.setAttribute('aria-label', `${series}: ${value}`);
+    });
   });
 }
 
