@@ -80,8 +80,8 @@ def parse_date(value: Any) -> date | None:
     except ValueError:
         pass
     for fmt in (
-        "%d-%b-%Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y",
-        "%d-%m-%Y", "%d-%b-%y", "%d/%m/%y", "%m/%d/%y",
+        "%d-%b-%Y", "%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y",
+        "%d-%m-%Y", "%d-%b-%y", "%m/%d/%y", "%d/%m/%y",
         "%b %d, %Y", "%d %b %Y", "%Y/%m/%d"
     ):
         try:

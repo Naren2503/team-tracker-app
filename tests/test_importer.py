@@ -1,6 +1,7 @@
 from io import BytesIO
 from openpyxl import Workbook
-from app.services.importer import preview_import
+from datetime import date
+from app.services.importer import parse_date, preview_import
 
 
 def make_workbook():
@@ -22,3 +23,7 @@ def test_import_preview_accepts_valid_tracker_and_work_log_rows():
     assert result["valid_rows"] == 2
     assert result["invalid_rows"] == 0
     assert set(result["sheets"]) == {"DQ Task Tracker", "Daily Report - FT"}
+
+
+def test_ambiguous_slash_date_uses_workbook_month_day_order():
+    assert parse_date("09/01/2026") == date(2026, 9, 1)

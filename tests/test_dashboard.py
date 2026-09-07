@@ -1,5 +1,6 @@
 from datetime import date
 
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
@@ -114,7 +115,11 @@ def test_week_filter_defaults_to_all_ft_logs_in_selected_month():
     assert set(metrics["trend"]) == {"Week 1", "Week 4"}
 
 
-def test_report_age_is_end_date_minus_start_date_when_dates_are_reversed():
+@pytest.mark.parametrize(("start_date", "expected_age"), [
+    (date(2026, 8, 14), 18),
+    (date(2026, 8, 27), 5),
+])
+def test_report_corrects_legacy_month_day_swap_before_calculating_age(start_date, expected_age):
     engine = create_engine("sqlite:///:memory:", poolclass=StaticPool)
     Base.metadata.create_all(bind=engine)
 
@@ -130,7 +135,7 @@ def test_report_age_is_end_date_minus_start_date_when_dates_are_reversed():
             tracker_record_id=record.id,
             ticket_id_raw=record.ticket_id,
             workstream="FT",
-            work_date=date(2026, 8, 27),
+            work_date=start_date,
             source_sheet="Daily Report - FT",
         ))
         db.commit()
@@ -143,6 +148,6 @@ def test_report_age_is_end_date_minus_start_date_when_dates_are_reversed():
         )
 
     ticket = metrics["ticket_ageing"][0]
-    assert ticket["age_days"] == (date(2026, 1, 9) - date(2026, 8, 27)).days
-    assert ticket["age_days"] < 0
+    assert ticket["end_date"] == "2026-09-01"
+    assert ticket["age_days"] == expected_age
     assert ticket["date_warning"] is not None
