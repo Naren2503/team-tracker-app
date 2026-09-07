@@ -101,27 +101,40 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
         row["test_cases"] = row["passed_tc"] + row["failed_tc"]
         row["test_steps"] = row["steps"]
 
-    lifecycle_trend: dict[str, dict[str, int]] = {}
+    lifecycle_trend: dict[str, dict] = {}
     if granularity == "month":
         lifecycle_start = start or date.today().replace(day=1)
         lifecycle_end = end or date.today()
         cursor = lifecycle_start.replace(day=1)
         while cursor <= lifecycle_end:
-            lifecycle_trend[cursor.strftime("%Y-%m")] = {"created": 0, "resolved": 0, "backlog": 0}
+            lifecycle_trend[cursor.strftime("%Y-%m")] = {
+                "created": 0,
+                "resolved": 0,
+                "backlog": 0,
+                "created_tickets": [],
+                "resolved_tickets": [],
+                "backlog_tickets": [],
+            }
             cursor = (cursor + timedelta(days=32)).replace(day=1)
         for record in records:
             if record.date_started:
                 bucket = record.date_started.strftime("%Y-%m")
                 if bucket in lifecycle_trend:
                     lifecycle_trend[bucket]["created"] += 1
+                    lifecycle_trend[bucket]["created_tickets"].append(record.ticket_id)
             if record.date_ended:
                 bucket = record.date_ended.strftime("%Y-%m")
                 if bucket in lifecycle_trend:
                     lifecycle_trend[bucket]["resolved"] += 1
-        running_backlog = 0
+                    lifecycle_trend[bucket]["resolved_tickets"].append(record.ticket_id)
+        active_backlog: set[str] = set()
         for bucket, values in lifecycle_trend.items():
-            running_backlog += values["created"] - values["resolved"]
-            values["backlog"] = max(running_backlog, 0)
+            active_backlog.update(values["created_tickets"])
+            active_backlog.difference_update(values["resolved_tickets"])
+            values["backlog"] = len(active_backlog)
+            values["backlog_tickets"] = sorted(active_backlog)
+            values["created_tickets"].sort()
+            values["resolved_tickets"].sort()
 
     history_trend: dict[str, dict[str, float]] = {}
     if granularity == "month" and end:

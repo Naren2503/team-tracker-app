@@ -115,6 +115,27 @@ def test_week_filter_defaults_to_all_ft_logs_in_selected_month():
     assert set(metrics["trend"]) == {"Week 1", "Week 4"}
 
 
+def test_lifecycle_trend_includes_ticket_names_for_hover_tooltips():
+    engine = create_engine("sqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(bind=engine)
+
+    with Session(engine) as db:
+        db.add_all([
+            TrackerRecord(ticket_id="DQ-ACTIVE", date_started=date(2026, 1, 5), status="In progress"),
+            TrackerRecord(ticket_id="DQ-DONE", date_started=date(2026, 1, 8), date_ended=date(2026, 2, 2), status="Completed"),
+        ])
+        db.commit()
+
+        metrics = dashboard_metrics(db, start=date(2026, 1, 1), end=date(2026, 2, 28))
+
+    january = metrics["lifecycle_trend"]["2026-01"]
+    february = metrics["lifecycle_trend"]["2026-02"]
+    assert january["created_tickets"] == ["DQ-ACTIVE", "DQ-DONE"]
+    assert january["backlog_tickets"] == ["DQ-ACTIVE", "DQ-DONE"]
+    assert february["resolved_tickets"] == ["DQ-DONE"]
+    assert february["backlog_tickets"] == ["DQ-ACTIVE"]
+
+
 @pytest.mark.parametrize(("start_date", "expected_age"), [
     (date(2026, 8, 14), 18),
     (date(2026, 8, 27), 5),
