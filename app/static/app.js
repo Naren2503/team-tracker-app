@@ -135,6 +135,7 @@ async function refreshDashboard() {
   if (utilizationBounds.start) { params.set('start', utilizationBounds.start); params.set('end', utilizationBounds.end); }
   if (week) params.set('week', week);
   params.set('granularity', granularity);
+  if (['monthly', 'weekly', 'utilization'].includes(view)) params.set('report_view', view);
   const response = await fetch(`/api/dashboard/metrics?${params}`);
   if (!response.ok) return showNotice('Unable to refresh dashboard', true);
   const data = await response.json();

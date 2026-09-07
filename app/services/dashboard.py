@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from ..models import TrackerRecord, WorkLog
 
 
-def dashboard_metrics(db: Session, start: date | None = None, end: date | None = None, tester: str | None = None, status: str | None = None, granularity: str = "month", week: int | None = None) -> dict:
+def dashboard_metrics(db: Session, start: date | None = None, end: date | None = None, tester: str | None = None, status: str | None = None, granularity: str = "month", week: int | None = None, report_view: str | None = None) -> dict:
     if start is None and end is None and granularity == "month":
         current_month = date.today().replace(day=1)
         start = (current_month - timedelta(days=5 * 31)).replace(day=1)
@@ -14,18 +14,10 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
         week_start = start.replace(day=(week - 1) * 7 + 1)
         week_end = start.replace(day=min(week * 7, monthrange(start.year, start.month)[1]))
         start, end = week_start, week_end
-    tracker = select(TrackerRecord).where(TrackerRecord.deleted_at.is_(None))
-    if tester:
-        tracker = tracker.where(TrackerRecord.tester_name_raw == tester)
-    if status:
-        tracker = tracker.where(TrackerRecord.status == status)
-    if start:
-        tracker = tracker.where(TrackerRecord.date_started >= start)
-    if end:
-        tracker = tracker.where(TrackerRecord.date_started <= end)
-    records = db.execute(tracker).scalars().all()
-
+    use_ft_activity = report_view in {"monthly", "weekly", "utilization"}
     log_query = select(WorkLog).where(WorkLog.deleted_at.is_(None))
+    if use_ft_activity:
+        log_query = log_query.where(WorkLog.source_sheet == "Daily Report - FT")
     if start:
         log_query = log_query.where(WorkLog.work_date >= start)
     if end:
@@ -33,6 +25,27 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
     if tester:
         log_query = log_query.where(WorkLog.tester_name_raw == tester)
     logs = db.execute(log_query).scalars().all()
+
+    tracker = select(TrackerRecord).where(TrackerRecord.deleted_at.is_(None))
+    if tester:
+        if use_ft_activity:
+            tracker_ids = {log.tracker_record_id for log in logs if log.tracker_record_id is not None}
+            tracker = tracker.where(TrackerRecord.id.in_(tracker_ids))
+        else:
+            tracker = tracker.where(TrackerRecord.tester_name_raw == tester)
+    if status:
+        tracker = tracker.where(TrackerRecord.status == status)
+    if use_ft_activity:
+        tracker_ids = {log.tracker_record_id for log in logs if log.tracker_record_id is not None}
+        tracker = tracker.where(TrackerRecord.id.in_(tracker_ids))
+    elif start:
+        tracker = tracker.where(TrackerRecord.date_started >= start)
+    if end and not use_ft_activity:
+        tracker = tracker.where(TrackerRecord.date_started <= end)
+    records = db.execute(tracker).scalars().all()
+    if use_ft_activity and status:
+        record_ids = {record.id for record in records}
+        logs = [log for log in logs if log.tracker_record_id in record_ids]
 
     def status_key(value: str | None) -> str:
         normalized = (value or "").lower()
@@ -64,10 +77,20 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
         entry["failed_tc"] += log.failed_tc or 0
         entry["steps"] += (log.passed_steps or 0) + (log.failed_steps or 0)
 
-    for record in records:
-        if record.date_started:
-            bucket = record.date_started.strftime("%Y-%m") if granularity != "week" else f"Week {(record.date_started.day - 1) // 7 + 1}"
-            trend.setdefault(bucket, {"hours": 0, "passed_tc": 0, "failed_tc": 0, "steps": 0, "tickets": 0})["tickets"] = trend.get(bucket, {}).get("tickets", 0) + 1
+    if use_ft_activity:
+        tickets_by_bucket: dict[str, set[str]] = {}
+        for log in logs:
+            if not log.work_date:
+                continue
+            bucket = log.work_date.strftime("%Y-%m") if granularity != "week" else f"Week {(log.work_date.day - 1) // 7 + 1}"
+            tickets_by_bucket.setdefault(bucket, set()).add(log.ticket_id_raw)
+        for bucket, ticket_ids in tickets_by_bucket.items():
+            trend.setdefault(bucket, {"hours": 0, "passed_tc": 0, "failed_tc": 0, "steps": 0, "tickets": 0})["tickets"] = len(ticket_ids)
+    else:
+        for record in records:
+            if record.date_started:
+                bucket = record.date_started.strftime("%Y-%m") if granularity != "week" else f"Week {(record.date_started.day - 1) // 7 + 1}"
+                trend.setdefault(bucket, {"hours": 0, "passed_tc": 0, "failed_tc": 0, "steps": 0, "tickets": 0})["tickets"] = trend.get(bucket, {}).get("tickets", 0) + 1
 
     for row in trend.values():
         row["test_cases"] = row["passed_tc"] + row["failed_tc"]
@@ -104,6 +127,8 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
             history_trend[history_cursor.strftime("%Y-%m")] = {"hours": 0, "passed_tc": 0, "failed_tc": 0, "steps": 0, "tickets": 0}
             history_cursor = (history_cursor + timedelta(days=32)).replace(day=1)
         history_log_query = select(WorkLog).where(WorkLog.deleted_at.is_(None), WorkLog.work_date >= history_start, WorkLog.work_date <= end)
+        if use_ft_activity:
+            history_log_query = history_log_query.where(WorkLog.source_sheet == "Daily Report - FT")
         history_tracker_query = select(TrackerRecord).where(TrackerRecord.deleted_at.is_(None), TrackerRecord.date_started >= history_start, TrackerRecord.date_started <= end)
         if tester:
             history_log_query = history_log_query.where(WorkLog.tester_name_raw == tester)
@@ -120,9 +145,17 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
                 entry["passed_tc"] += log.passed_tc or 0
                 entry["failed_tc"] += log.failed_tc or 0
                 entry["steps"] += (log.passed_steps or 0) + (log.failed_steps or 0)
-        for record in history_records:
-            if record.date_started:
-                history_trend.setdefault(record.date_started.strftime("%Y-%m"), {"hours": 0, "passed_tc": 0, "failed_tc": 0, "steps": 0, "tickets": 0})["tickets"] += 1
+        if use_ft_activity:
+            history_tickets: dict[str, set[str]] = {}
+            for log in history_logs:
+                if log.work_date:
+                    history_tickets.setdefault(log.work_date.strftime("%Y-%m"), set()).add(log.ticket_id_raw)
+            for bucket, ticket_ids in history_tickets.items():
+                history_trend[bucket]["tickets"] = len(ticket_ids)
+        else:
+            for record in history_records:
+                if record.date_started:
+                    history_trend.setdefault(record.date_started.strftime("%Y-%m"), {"hours": 0, "passed_tc": 0, "failed_tc": 0, "steps": 0, "tickets": 0})["tickets"] += 1
 
     utilization: dict[str, float] = {}
     for log in logs:
@@ -133,7 +166,10 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
         tester_dates = {log.work_date for log in logs if log.tester_name_raw == tester_name and log.work_date}
         capacity = max(len(tester_dates), 1) * 7.5
         utilization[tester_name] = round(hours / capacity * 100, 1)
-    tester_names = {name for name in [record.tester_name_raw for record in records] + [log.tester_name_raw for log in logs] if name}
+    if use_ft_activity:
+        tester_names = {log.tester_name_raw for log in logs if log.tester_name_raw}
+    else:
+        tester_names = {name for name in [record.tester_name_raw for record in records] + [log.tester_name_raw for log in logs] if name}
 
     utilization_trend: dict[str, float] = {}
     for bucket, row in trend.items():
@@ -143,12 +179,33 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
         utilization_trend[bucket] = round(row["hours"] / capacity * 100, 1) if capacity else 0
 
     def age_days(record: TrackerRecord) -> int | None:
-        if not record.date_started:
+        start_date = report_start_dates.get(record.id) if use_ft_activity else record.date_started
+        if not start_date:
             return None
         finish_date = record.date_ended or date.today()
-        return max((finish_date - record.date_started).days, 0)
+        return max((finish_date - start_date).days, 0)
 
-    ticket_ageing = [{"ticket_id": record.ticket_id, "status": record.status, "tester": record.tester_name_raw or "Unassigned", "start_date": record.date_started.isoformat() if record.date_started else None, "end_date": record.date_ended.isoformat() if record.date_ended else None, "comments": record.comments or "", "age_days": age_days(record)} for record in records]
+    report_start_dates: dict[int, date] = {}
+    report_testers: dict[int, str] = {}
+    if use_ft_activity:
+        record_ids = {record.id for record in records}
+        detail_logs = db.execute(
+            select(WorkLog).where(
+                WorkLog.deleted_at.is_(None),
+                WorkLog.source_sheet == "Daily Report - FT",
+                WorkLog.tracker_record_id.in_(record_ids),
+            )
+        ).scalars().all()
+        for log in detail_logs:
+            if log.tracker_record_id is None or not log.work_date:
+                continue
+            current_start = report_start_dates.get(log.tracker_record_id)
+            if current_start is None or log.work_date < current_start:
+                report_start_dates[log.tracker_record_id] = log.work_date
+                if log.tester_name_raw:
+                    report_testers[log.tracker_record_id] = log.tester_name_raw
+
+    ticket_ageing = [{"ticket_id": record.ticket_id, "status": record.status, "tester": report_testers.get(record.id, record.tester_name_raw or "Unassigned"), "start_date": (report_start_dates.get(record.id) if use_ft_activity else record.date_started).isoformat() if (report_start_dates.get(record.id) if use_ft_activity else record.date_started) else None, "end_date": record.date_ended.isoformat() if record.date_ended else None, "comments": record.comments or "", "age_days": age_days(record)} for record in records]
     ticket_ageing.sort(key=lambda item: item["age_days"] if item["age_days"] is not None else -1, reverse=True)
     age_values = [item["age_days"] for item in ticket_ageing if item["age_days"] is not None]
 
@@ -175,6 +232,8 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
 
 
 def filter_options(db: Session) -> dict:
-    testers = db.execute(select(TrackerRecord.tester_name_raw).where(TrackerRecord.tester_name_raw.is_not(None)).distinct().order_by(TrackerRecord.tester_name_raw)).scalars().all()
+    tracker_testers = db.execute(select(TrackerRecord.tester_name_raw).where(TrackerRecord.tester_name_raw.is_not(None)).distinct()).scalars().all()
+    ft_testers = db.execute(select(WorkLog.tester_name_raw).where(WorkLog.deleted_at.is_(None), WorkLog.source_sheet == "Daily Report - FT", WorkLog.tester_name_raw.is_not(None)).distinct()).scalars().all()
+    testers = sorted(set(tracker_testers) | set(ft_testers))
     statuses = db.execute(select(TrackerRecord.status).where(TrackerRecord.status.is_not(None)).distinct().order_by(TrackerRecord.status)).scalars().all()
     return {"testers": testers, "statuses": statuses}

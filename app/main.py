@@ -1,3 +1,4 @@
+from calendar import monthrange
 from datetime import date, timedelta
 from pathlib import Path
 from fastapi import Depends, FastAPI, Request
@@ -72,8 +73,9 @@ def report_page(view: str, request: Request, db: Session, user: User | None):
         return RedirectResponse("/login")
     context = page_context(request, user, db)
     current_month = date.today().replace(day=1)
+    current_month_end = date(current_month.year, current_month.month, monthrange(current_month.year, current_month.month)[1])
     default_start = (current_month - timedelta(days=5 * 31)).replace(day=1)
-    metrics = dashboard_metrics(db, start=current_month if view == "monthly" else None, end=date.today() if view == "monthly" else None, granularity="week" if view == "weekly" else "month")
+    metrics = dashboard_metrics(db, start=current_month, end=current_month_end, granularity="week" if view == "weekly" else "month", report_view=view)
     context.update({"metrics": metrics, "filters": filter_options(db), "page": view, "view": view, "default_start_month": default_start.strftime("%Y-%m"), "default_end_month": date.today().strftime("%Y-%m"), "default_month": current_month.strftime("%Y-%m")})
     return templates.TemplateResponse("dashboard.html", context)
 
