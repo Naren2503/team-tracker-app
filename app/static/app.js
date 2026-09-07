@@ -61,15 +61,13 @@ function renderSeriesLine(element, trend, series) {
 
 function scaleMixChart(element) {
   if (!element) return;
-  ['tickets', 'cases', 'steps'].forEach((series) => {
-    const bars = [...element.querySelectorAll(`.mix-bars .${series}`)];
-    const values = bars.map((bar) => Number.parseFloat(bar.dataset.value) || 0);
-    const max = Math.max(...values, 1);
-    bars.forEach((bar) => {
-      const value = Number.parseFloat(bar.dataset.value) || 0;
-      bar.style.height = `${value ? 12 + value / max * 138 : 4}px`;
-      bar.setAttribute('aria-label', `${series}: ${value}`);
-    });
+  const bars = [...element.querySelectorAll('.mix-bars i')];
+  const values = bars.map((bar) => Number.parseFloat(bar.dataset.value) || 0);
+  const max = Math.max(...values, 1);
+  bars.forEach((bar) => {
+    const value = Number.parseFloat(bar.dataset.value) || 0;
+    bar.style.height = `${value ? 8 + Math.log1p(value) / Math.log1p(max) * 142 : 4}px`;
+    bar.setAttribute('aria-label', `${bar.className}: ${value}`);
   });
 }
 
@@ -181,7 +179,7 @@ async function refreshDashboard() {
   const testerSummary = document.getElementById('testerSummary');
   if (testerSummary) testerSummary.innerHTML = Object.entries(data.by_tester).map(([label, count]) => `<div><span>${label}</span><b>${count} tickets</b></div>`).join('');
   const reportTickets = document.querySelector('#reportTickets tbody');
-  if (reportTickets) reportTickets.innerHTML = data.ticket_ageing.map((ticket) => `<tr><td>${ticket.ticket_id}</td><td>${ticket.tester}</td><td>${ticket.start_date || '-'}</td><td>${ticket.end_date || '-'}</td><td><span class="pill">${ticket.status}</span></td><td>${ticket.age_days ?? '-'}d</td><td class="comment">${ticket.comments}</td></tr>`).join('');
+  if (reportTickets) reportTickets.innerHTML = data.ticket_ageing.map((ticket) => `<tr><td>${ticket.ticket_id}</td><td>${ticket.tester}</td><td>${ticket.start_date || '-'}</td><td title="${ticket.date_warning || ''}">${ticket.end_date || '-'}</td><td><span class="pill">${ticket.status}</span></td><td>${ticket.age_days ?? '-'}d</td><td class="comment">${ticket.comments}</td></tr>`).join('');
   showNotice('Dashboard refreshed');
 }
 

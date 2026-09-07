@@ -112,3 +112,37 @@ def test_week_filter_defaults_to_all_ft_logs_in_selected_month():
 
     assert metrics["total_hours"] == 5
     assert set(metrics["trend"]) == {"Week 1", "Week 4"}
+
+
+def test_report_age_uses_today_when_dq_end_precedes_ft_start():
+    engine = create_engine("sqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(bind=engine)
+
+    with Session(engine) as db:
+        record = TrackerRecord(
+            ticket_id="HYDRAS_345",
+            date_ended=date(2026, 1, 9),
+            status="Completed",
+        )
+        db.add(record)
+        db.flush()
+        db.add(WorkLog(
+            tracker_record_id=record.id,
+            ticket_id_raw=record.ticket_id,
+            workstream="FT",
+            work_date=date(2026, 8, 27),
+            source_sheet="Daily Report - FT",
+        ))
+        db.commit()
+
+        metrics = dashboard_metrics(
+            db,
+            start=date(2026, 8, 1),
+            end=date(2026, 8, 31),
+            report_view="monthly",
+        )
+
+    ticket = metrics["ticket_ageing"][0]
+    assert ticket["age_days"] == (date.today() - date(2026, 8, 27)).days
+    assert ticket["age_days"] > 0
+    assert ticket["date_warning"] is not None
