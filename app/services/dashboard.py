@@ -110,10 +110,8 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
             lifecycle_trend[cursor.strftime("%Y-%m")] = {
                 "created": 0,
                 "resolved": 0,
-                "backlog": 0,
                 "created_tickets": [],
                 "resolved_tickets": [],
-                "backlog_tickets": [],
             }
             cursor = (cursor + timedelta(days=32)).replace(day=1)
         for record in records:
@@ -127,12 +125,7 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
                 if bucket in lifecycle_trend:
                     lifecycle_trend[bucket]["resolved"] += 1
                     lifecycle_trend[bucket]["resolved_tickets"].append(record.ticket_id)
-        active_backlog: set[str] = set()
-        for bucket, values in lifecycle_trend.items():
-            active_backlog.update(values["created_tickets"])
-            active_backlog.difference_update(values["resolved_tickets"])
-            values["backlog"] = len(active_backlog)
-            values["backlog_tickets"] = sorted(active_backlog)
+        for values in lifecycle_trend.values():
             values["created_tickets"].sort()
             values["resolved_tickets"].sort()
 

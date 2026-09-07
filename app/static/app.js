@@ -100,7 +100,6 @@ function renderLifecycleLine(element, trend) {
   const series = [
     { key: 'created', name: 'Created', color: 'var(--accent-2)' },
     { key: 'resolved', name: 'Resolved', color: 'var(--accent)' },
-    { key: 'backlog', name: 'Backlog', color: '#8b9a92' },
   ];
   const width = 720;
   const x = (index) => 40 + index * (width / Math.max(labels.length - 1, 1));
