@@ -5,7 +5,23 @@ from sqlalchemy.orm import Session
 from ..models import TrackerRecord, WorkLog
 
 
-def dashboard_metrics(db: Session, start: date | None = None, end: date | None = None, tester: str | None = None, status: str | None = None, granularity: str = "month", week: int | None = None, report_view: str | None = None) -> dict:
+BT_TICKET_PREFIXES = ("HYDRAS", "THESTRALS", "CIMDB", "CIMBT")
+
+
+def ticket_category_matches(ticket_id: str | None, category: str | None) -> bool:
+    if not category or category == "all":
+        return True
+    normalized = (ticket_id or "").strip().upper()
+    if category == "dq":
+        return normalized.startswith("DQ")
+    if category == "bt":
+        return normalized.startswith(BT_TICKET_PREFIXES)
+    if category == "others":
+        return not normalized.startswith(("DQ", *BT_TICKET_PREFIXES))
+    return True
+
+
+def dashboard_metrics(db: Session, start: date | None = None, end: date | None = None, tester: str | None = None, status: str | None = None, granularity: str = "month", week: int | None = None, report_view: str | None = None, ticket_category: str | None = None) -> dict:
     if start is None and end is None and granularity == "month":
         current_month = date.today().replace(day=1)
         start = (current_month - timedelta(days=5 * 31)).replace(day=1)
@@ -25,6 +41,8 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
     if tester:
         log_query = log_query.where(WorkLog.tester_name_raw == tester)
     logs = db.execute(log_query).scalars().all()
+    if ticket_category:
+        logs = [log for log in logs if ticket_category_matches(log.ticket_id_raw, ticket_category)]
 
     def ticket_key(value: str | None) -> str:
         return (value or "").strip().casefold()
@@ -147,6 +165,8 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
         if status:
             history_tracker_query = history_tracker_query.where(TrackerRecord.status == status)
         history_logs = db.execute(history_log_query).scalars().all()
+        if ticket_category:
+            history_logs = [log for log in history_logs if ticket_category_matches(log.ticket_id_raw, ticket_category)]
         history_records = db.execute(history_tracker_query).scalars().all()
         for log in history_logs:
             if log.work_date:

@@ -74,7 +74,7 @@ function scaleMixChart(element) {
 function rememberFilters() {
   const view = document.body.dataset.view || 'dashboard';
   const values = {};
-  ['testerFilter', 'statusFilter', 'monthlyMonthFilter', 'startMonthFilter', 'endMonthFilter', 'weekMonthFilter', 'weekFilter', 'granularityFilter', 'trackerTesterFilter', 'trackerStartDateFilter', 'trackerEndDateFilter'].forEach((id) => {
+  ['testerFilter', 'statusFilter', 'ticketCategoryFilter', 'monthlyMonthFilter', 'startMonthFilter', 'endMonthFilter', 'weekMonthFilter', 'weekFilter', 'granularityFilter', 'trackerTesterFilter', 'trackerStartDateFilter', 'trackerEndDateFilter'].forEach((id) => {
     const element = document.getElementById(id);
     if (element) values[id] = element.value;
   });
@@ -134,6 +134,7 @@ async function refreshDashboard() {
   const view = document.body.dataset.view || 'dashboard';
   const tester = document.getElementById('testerFilter')?.value || '';
   const status = document.getElementById('statusFilter')?.value || '';
+  const ticketCategory = document.getElementById('ticketCategoryFilter')?.value || '';
   const granularity = view === 'weekly' ? 'week' : (document.getElementById('granularityFilter')?.value || 'month');
   const monthlyBounds = monthBounds(document.getElementById('monthlyMonthFilter')?.value);
   const startBounds = monthBounds(document.getElementById('startMonthFilter')?.value);
@@ -144,6 +145,7 @@ async function refreshDashboard() {
   const params = new URLSearchParams();
   if (tester) params.set('tester', tester);
   if (status) params.set('status', status);
+  if (ticketCategory) params.set('ticket_category', ticketCategory);
   if (startBounds.start) params.set('start', startBounds.start);
   if (endBounds.end) params.set('end', endBounds.end);
   if (monthlyBounds.start) { params.set('start', monthlyBounds.start); params.set('end', monthlyBounds.end); }
@@ -156,15 +158,23 @@ async function refreshDashboard() {
   if (!response.ok) return showNotice('Unable to refresh dashboard', true);
   const data = await response.json();
   const cards = document.getElementById('cards');
-  if (cards) cards.innerHTML = [
-    ['Total Records', data.total_records],
-    ['Completed', data.status_counts.completed],
-    ['In Progress', data.status_counts.in_progress],
-    ['Blocked', data.status_counts.blocked],
-    ['Total Hours', data.total_hours],
-    ['Passed TC', data.passed_tc],
-    ['Avg Ticket Age', `${data.average_age_days}d`],
-  ].map(([label, value]) => `<article><span>${label}</span><strong>${value}</strong></article>`).join('');
+  if (cards) {
+    const cardValues = view === 'monthly' ? [
+      ['Total Tickets', data.total_records],
+      ['Total Hours', data.total_hours],
+      ['Test Cases', data.passed_tc + data.failed_tc],
+      ['Test Steps', data.passed_steps + data.failed_steps],
+    ] : [
+      ['Total Records', data.total_records],
+      ['Completed', data.status_counts.completed],
+      ['In Progress', data.status_counts.in_progress],
+      ['Blocked', data.status_counts.blocked],
+      ['Total Hours', data.total_hours],
+      ['Passed TC', data.passed_tc],
+      ['Avg Ticket Age', `${data.average_age_days}d`],
+    ];
+    cards.innerHTML = cardValues.map(([label, value]) => `<article><span>${label}</span><strong>${value}</strong></article>`).join('');
+  }
   const trendTitle = document.getElementById('trendTitle');
   if (trendTitle) trendTitle.textContent = `${granularity === 'week' ? 'Weekly' : 'Monthly'} Effort Trend`;
   const trendChart = document.getElementById('trendChart');

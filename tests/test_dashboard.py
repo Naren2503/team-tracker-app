@@ -115,6 +115,50 @@ def test_week_filter_defaults_to_all_ft_logs_in_selected_month():
     assert set(metrics["trend"]) == {"Week 1", "Week 4"}
 
 
+@pytest.mark.parametrize(("category", "expected_tickets"), [
+    ("dq", {"DQ-100"}),
+    ("bt", {"HYDRAS-100", "THESTRALS-100", "CIMDB-100", "CIMBT-100"}),
+    ("others", {"MISC-100"}),
+    ("all", {"DQ-100", "HYDRAS-100", "THESTRALS-100", "CIMDB-100", "CIMBT-100", "MISC-100"}),
+])
+def test_monthly_ticket_category_filters_cards_details_and_history(category, expected_tickets):
+    engine = create_engine("sqlite:///:memory:", poolclass=StaticPool)
+    Base.metadata.create_all(bind=engine)
+
+    with Session(engine) as db:
+        ticket_ids = ["DQ-100", "HYDRAS-100", "THESTRALS-100", "CIMDB-100", "CIMBT-100", "MISC-100"]
+        records = [TrackerRecord(ticket_id=ticket_id, status="Completed") for ticket_id in ticket_ids]
+        db.add_all(records)
+        db.flush()
+        db.add_all([
+            WorkLog(
+                tracker_record_id=record.id,
+                ticket_id_raw=record.ticket_id.lower(),
+                workstream="FT",
+                work_date=date(2026, 1, 10),
+                work_log_hours=1,
+                passed_tc=1,
+                source_sheet="Daily Report - FT",
+            )
+            for record in records
+        ])
+        db.commit()
+
+        metrics = dashboard_metrics(
+            db,
+            start=date(2026, 1, 1),
+            end=date(2026, 1, 31),
+            report_view="monthly",
+            ticket_category=category,
+        )
+
+    assert metrics["total_records"] == len(expected_tickets)
+    assert metrics["total_hours"] == len(expected_tickets)
+    assert metrics["passed_tc"] == len(expected_tickets)
+    assert {ticket["ticket_id"] for ticket in metrics["ticket_ageing"]} == expected_tickets
+    assert metrics["history_trend"]["2026-01"]["tickets"] == len(expected_tickets)
+
+
 def test_lifecycle_trend_includes_created_and_resolved_ticket_names_for_hover_tooltips():
     engine = create_engine("sqlite:///:memory:", poolclass=StaticPool)
     Base.metadata.create_all(bind=engine)

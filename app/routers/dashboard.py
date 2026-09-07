@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 
 @router.get("/metrics")
-def metrics(start: date | None = None, end: date | None = None, month: str | None = None, tester: str | None = None, status: str | None = None, granularity: str = "month", week: int | None = None, report_view: str | None = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def metrics(start: date | None = None, end: date | None = None, month: str | None = None, tester: str | None = None, status: str | None = None, granularity: str = "month", week: int | None = None, report_view: str | None = None, ticket_category: str | None = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if month:
         try:
             year, month_number = (int(value) for value in month.split("-"))
@@ -19,7 +19,7 @@ def metrics(start: date | None = None, end: date | None = None, month: str | Non
             end = date(year, month_number, monthrange(year, month_number)[1])
         except (TypeError, ValueError):
             pass
-    return dashboard_metrics(db, start=start, end=end, tester=tester, status=status, granularity=granularity, week=week, report_view=report_view)
+    return dashboard_metrics(db, start=start, end=end, tester=tester, status=status, granularity=granularity, week=week, report_view=report_view, ticket_category=ticket_category)
 
 
 @router.get("/filters")
