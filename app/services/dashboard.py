@@ -185,10 +185,9 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
 
     def age_days(record: TrackerRecord) -> int | None:
         start_date = report_start_dates.get(record.id) if use_ft_activity else record.date_started
-        if not start_date:
+        if not start_date or not record.date_ended:
             return None
-        finish_date = record.date_ended if record.date_ended and record.date_ended >= start_date else date.today()
-        return (finish_date - start_date).days
+        return (record.date_ended - start_date).days
 
     report_start_dates: dict[int, date] = {}
     report_testers: dict[int, str] = {}
@@ -206,7 +205,7 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
                 if log.tester_name_raw:
                     report_testers[target_record_id] = log.tester_name_raw
 
-    ticket_ageing = [{"ticket_id": record.ticket_id, "status": record.status, "tester": report_testers.get(record.id, record.tester_name_raw or "Unassigned"), "start_date": (report_start_dates.get(record.id) if use_ft_activity else record.date_started).isoformat() if (report_start_dates.get(record.id) if use_ft_activity else record.date_started) else None, "end_date": record.date_ended.isoformat() if record.date_ended else None, "date_warning": "DQ end date is before the FT start date; age is calculated through today" if record.date_ended and (report_start_dates.get(record.id) if use_ft_activity else record.date_started) and record.date_ended < (report_start_dates.get(record.id) if use_ft_activity else record.date_started) else None, "comments": record.comments or "", "age_days": age_days(record)} for record in records]
+    ticket_ageing = [{"ticket_id": record.ticket_id, "status": record.status, "tester": report_testers.get(record.id, record.tester_name_raw or "Unassigned"), "start_date": (report_start_dates.get(record.id) if use_ft_activity else record.date_started).isoformat() if (report_start_dates.get(record.id) if use_ft_activity else record.date_started) else None, "end_date": record.date_ended.isoformat() if record.date_ended else None, "date_warning": "DQ end date is before the FT start date; the negative age reflects the source dates" if record.date_ended and (report_start_dates.get(record.id) if use_ft_activity else record.date_started) and record.date_ended < (report_start_dates.get(record.id) if use_ft_activity else record.date_started) else None, "comments": record.comments or "", "age_days": age_days(record)} for record in records]
     ticket_ageing.sort(key=lambda item: item["age_days"] if item["age_days"] is not None else -1, reverse=True)
     age_values = [item["age_days"] for item in ticket_ageing if item["age_days"] is not None]
 

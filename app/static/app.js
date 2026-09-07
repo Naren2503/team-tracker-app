@@ -179,7 +179,7 @@ async function refreshDashboard() {
   const testerSummary = document.getElementById('testerSummary');
   if (testerSummary) testerSummary.innerHTML = Object.entries(data.by_tester).map(([label, count]) => `<div><span>${label}</span><b>${count} tickets</b></div>`).join('');
   const reportTickets = document.querySelector('#reportTickets tbody');
-  if (reportTickets) reportTickets.innerHTML = data.ticket_ageing.map((ticket) => `<tr><td>${ticket.ticket_id}</td><td>${ticket.tester}</td><td>${ticket.start_date || '-'}</td><td title="${ticket.date_warning || ''}">${ticket.end_date || '-'}</td><td><span class="pill">${ticket.status}</span></td><td>${ticket.age_days ?? '-'}d</td><td class="comment">${ticket.comments}</td></tr>`).join('');
+  if (reportTickets) reportTickets.innerHTML = data.ticket_ageing.map((ticket) => `<tr><td>${ticket.ticket_id}</td><td>${ticket.tester}</td><td>${ticket.start_date || '-'}</td><td title="${ticket.date_warning || ''}">${ticket.end_date || '-'}</td><td><span class="pill">${ticket.status}</span></td><td>${ticket.age_days == null ? '-' : `${ticket.age_days}d`}</td><td class="comment">${ticket.comments}</td></tr>`).join('');
   showNotice('Dashboard refreshed');
 }
 

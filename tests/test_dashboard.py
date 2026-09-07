@@ -114,7 +114,7 @@ def test_week_filter_defaults_to_all_ft_logs_in_selected_month():
     assert set(metrics["trend"]) == {"Week 1", "Week 4"}
 
 
-def test_report_age_uses_today_when_dq_end_precedes_ft_start():
+def test_report_age_is_end_date_minus_start_date_when_dates_are_reversed():
     engine = create_engine("sqlite:///:memory:", poolclass=StaticPool)
     Base.metadata.create_all(bind=engine)
 
@@ -143,6 +143,6 @@ def test_report_age_uses_today_when_dq_end_precedes_ft_start():
         )
 
     ticket = metrics["ticket_ageing"][0]
-    assert ticket["age_days"] == (date.today() - date(2026, 8, 27)).days
-    assert ticket["age_days"] > 0
+    assert ticket["age_days"] == (date(2026, 1, 9) - date(2026, 8, 27)).days
+    assert ticket["age_days"] < 0
     assert ticket["date_warning"] is not None
