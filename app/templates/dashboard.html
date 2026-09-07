@@ -22,7 +22,7 @@
 {% if view == 'dashboard' %}
   <section class="panel"><h2>Ticket Status Summary</h2><div id="statusSummary" class="summary-grid"><div><span>Completed</span><strong>{{ metrics.status_counts.completed }}</strong></div><div><span>In progress</span><strong>{{ metrics.status_counts.in_progress }}</strong></div><div><span>Pending</span><strong>{{ metrics.status_counts.pending }}</strong></div><div><span>Blocked</span><strong>{{ metrics.status_counts.blocked }}</strong></div></div></section>
 {% endif %}
-<div class="grid-two">
+<div class="grid-two{% if view == 'monthly' %} monthly-report{% endif %}">
 {% if view in ['dashboard', 'monthly'] %}
   {% if view == 'monthly' %}<div class="cards" id="cards"><article><span>Total Tickets</span><strong>{{ metrics.total_records }}</strong></article><article><span>Total Hours</span><strong>{{ metrics.total_hours }}</strong></article><article><span>Test Cases</span><strong>{{ metrics.passed_tc + metrics.failed_tc }}</strong></article><article><span>Test Steps</span><strong>{{ metrics.passed_steps + metrics.failed_steps }}</strong></article></div>{% endif %}
 {% endif %}
