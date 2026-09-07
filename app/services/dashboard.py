@@ -62,12 +62,13 @@ def backlog_metrics(db: Session, start: date, end: date, tester: str | None = No
         month_end = date(cursor.year, cursor.month, monthrange(cursor.year, cursor.month)[1])
         created_records = [record for record in records if cursor <= record.date_started <= month_end]
         closed = [
-            record for record in created_records
+            record for record in records
             if closure_date(record) and cursor <= closure_date(record) <= month_end
         ]
         backlog = [
-            record for record in created_records
-            if closure_date(record) is None or closure_date(record) > month_end
+            record for record in records
+            if record.date_started <= month_end
+            and (closure_date(record) is None or closure_date(record) > month_end)
         ]
         rows.append({
             "month": cursor.strftime("%Y-%m"),

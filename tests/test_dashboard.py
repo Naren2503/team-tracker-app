@@ -152,16 +152,18 @@ def test_backlog_metrics_include_preexisting_open_tickets_and_monthly_movements(
 
     assert rows == [
         {"month": "2026-01", "created": 2, "closed": 0, "month_end_backlog": 2},
-        {"month": "2026-02", "created": 2, "closed": 2, "month_end_backlog": 0},
+        {"month": "2026-02", "created": 2, "closed": 3, "month_end_backlog": 1},
     ]
     assert dq_rows == [
         {"month": "2026-01", "created": 1, "closed": 0, "month_end_backlog": 1},
-        {"month": "2026-02", "created": 2, "closed": 2, "month_end_backlog": 0},
+        {"month": "2026-02", "created": 2, "closed": 3, "month_end_backlog": 0},
     ]
     february_only = backlog_metrics(db, start=date(2026, 2, 1), end=date(2026, 2, 28))
-    assert february_only[0] == rows[1]
+    assert february_only == [{"month": "2026-02", "created": 2, "closed": 2, "month_end_backlog": 0}]
+    opening_backlog = 0
     for row in rows:
-        assert row["month_end_backlog"] == row["created"] - row["closed"]
+        assert row["month_end_backlog"] == opening_backlog + row["created"] - row["closed"]
+        opening_backlog = row["month_end_backlog"]
 
 
 def test_backlog_page_and_api_expose_requested_columns(client):
