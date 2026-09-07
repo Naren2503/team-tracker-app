@@ -98,22 +98,13 @@ function renderLifecycleLine(element, trend) {
   const labels = Object.keys(trend);
   if (!labels.length) { element.innerHTML = ''; return; }
   const series = [
-    { key: 'created', name: 'Created', color: 'var(--accent-2)', labelOffset: -14 },
-    { key: 'resolved', name: 'Resolved', color: 'var(--accent)', labelOffset: 24 },
+    { key: 'created', name: 'Created', shortName: 'C', color: 'var(--accent-2)', labelX: -10, labelY: -16, anchor: 'end' },
+    { key: 'resolved', name: 'Resolved', shortName: 'R', color: 'var(--accent)', labelX: 10, labelY: 24, anchor: 'start' },
   ];
   const width = 720;
   const x = (index) => 40 + index * (width / Math.max(labels.length - 1, 1));
   const max = Math.max(...series.flatMap((item) => labels.map((label) => trend[label][item.key])), 1);
   const y = (label, item) => 220 - trend[label][item.key] / max * 170;
-  const labelY = (label, item) => {
-    const pointY = y(label, item);
-    const otherPointY = y(label, series.find((candidate) => candidate.key !== item.key));
-    let position = pointY + item.labelOffset;
-    if (Math.abs(position - otherPointY) < 18) {
-      position = item.key === 'created' ? otherPointY - 20 : otherPointY + 22;
-    }
-    return Math.max(16, Math.min(position, 238));
-  };
   const escapeMarkup = (value) => String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
   element.innerHTML = series.map((item) => {
     const points = labels.map((label, index) => `${x(index)},${y(label, item)}`).join(' ');
@@ -121,7 +112,11 @@ function renderLifecycleLine(element, trend) {
       const tickets = trend[label][`${item.key}_tickets`] || [];
       const ticketText = tickets.length ? tickets.join(', ') : 'No tickets';
       const tooltip = escapeMarkup(`${item.name} · ${label} · ${trend[label][item.key]}\n${ticketText}`);
-      return `<circle class="lifecycle-point" cx="${x(index)}" cy="${y(label, item)}" r="7" fill="${item.color}" tabindex="0"><title>${tooltip}</title></circle><text x="${x(index)}" y="${labelY(label, item)}" text-anchor="middle" class="trend-value">${trend[label][item.key]}</text>`;
+      const pointX = x(index);
+      const pointY = y(label, item);
+      const valueX = pointX + item.labelX;
+      const valueY = Math.max(16, Math.min(pointY + item.labelY, 238));
+      return `<line class="lifecycle-label-link" x1="${pointX}" y1="${pointY}" x2="${valueX}" y2="${valueY}" stroke="${item.color}" /><circle class="lifecycle-point" cx="${pointX}" cy="${pointY}" r="7" fill="${item.color}" tabindex="0"><title>${tooltip}</title></circle><text x="${valueX}" y="${valueY}" text-anchor="${item.anchor}" class="trend-value lifecycle-value" fill="${item.color}">${item.shortName} ${trend[label][item.key]}</text>`;
     }).join('')}`;
   }).join('') + labels.map((label, index) => `<text x="${x(index)}" y="255" text-anchor="middle" class="trend-label">${label}</text>`).join('');
 }

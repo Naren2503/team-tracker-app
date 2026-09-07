@@ -89,6 +89,8 @@ section:has(#monthlyMixChart), section:has(#sixMonthChart) { display: flex; flex
 .trendline { display: block; width: 100%; min-width: 0; min-height: 260px; margin: 0 0 18px; overflow: visible; background: linear-gradient(to bottom, transparent 49%, var(--line) 50%, transparent 51%); }
 .trend-value, .trend-label { fill: var(--ink); font-size: 12px; }
 .trend-value { font-weight: 800; }
+.lifecycle-value { paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.lifecycle-label-link { stroke-width: 1.5; stroke-dasharray: 2 2; opacity: .75; }
 .lifecycle-point { cursor: help; stroke: var(--surface); stroke-width: 2; transition: r .15s ease, stroke-width .15s ease; }
 .lifecycle-point:hover, .lifecycle-point:focus { r: 10px; stroke-width: 3; outline: none; }
 .mix-chart { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: end; gap: 8px; flex: 1; min-height: 0; overflow: hidden; padding: 10px 8px 6px; border-bottom: 1px solid var(--line); }
