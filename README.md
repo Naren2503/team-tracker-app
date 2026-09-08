@@ -45,6 +45,30 @@ Supported modes:
 - `replace`: soft-delete existing tracker/work-log rows before import
 - `add`: reject duplicate tracker tickets
 
+## Automatic SharePoint Sync
+
+For a free automatic sync, use GitHub Actions with Microsoft Graph. The workflow in `.github/workflows/sharepoint-sync.yml` runs every 30 minutes and can also be started manually.
+
+Configure these GitHub repository secrets:
+
+- `MS_TENANT_ID`
+- `MS_CLIENT_ID`
+- `MS_CLIENT_SECRET`
+- `SHAREPOINT_SITE_ID`
+- `SHAREPOINT_DRIVE_ID`
+- `SHAREPOINT_FILE_PATH`, for example `General/DQ - Testing Tracker - 2026.xlsm`
+- `TEAM_TRACKER_WEBHOOK_TOKEN`
+
+Optional secret:
+
+- `SHAREPOINT_ITEM_ID`, if you prefer a fixed drive item ID instead of `SHAREPOINT_FILE_PATH`
+
+Optional repository variable:
+
+- `TEAM_TRACKER_BASE_URL`, defaults to `https://naren2503-team-tracker.onrender.com`
+
+The Microsoft Entra app used for `MS_CLIENT_ID` needs Microsoft Graph application access to read the SharePoint file, such as `Sites.Read.All`, with admin consent.
+
 ## Security Notes
 
 - Do not use `.env.example` values in production.

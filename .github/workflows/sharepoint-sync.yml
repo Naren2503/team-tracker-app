@@ -1,0 +1,28 @@
+name: SharePoint workbook sync
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Sync SharePoint workbook to Team Tracker
+        env:
+          MS_TENANT_ID: ${{ secrets.MS_TENANT_ID }}
+          MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
+          MS_CLIENT_SECRET: ${{ secrets.MS_CLIENT_SECRET }}
+          SHAREPOINT_SITE_ID: ${{ secrets.SHAREPOINT_SITE_ID }}
+          SHAREPOINT_DRIVE_ID: ${{ secrets.SHAREPOINT_DRIVE_ID }}
+          SHAREPOINT_FILE_PATH: ${{ secrets.SHAREPOINT_FILE_PATH }}
+          SHAREPOINT_ITEM_ID: ${{ secrets.SHAREPOINT_ITEM_ID }}
+          TEAM_TRACKER_BASE_URL: ${{ vars.TEAM_TRACKER_BASE_URL || 'https://naren2503-team-tracker.onrender.com' }}
+          TEAM_TRACKER_WEBHOOK_TOKEN: ${{ secrets.TEAM_TRACKER_WEBHOOK_TOKEN }}
+          IMPORT_MODE: replace
+        run: python scripts/sync_sharepoint.py
