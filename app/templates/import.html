@@ -8,19 +8,24 @@
       Automatically sync changes whenever your team updates <strong>DQ - Testing Tracker - 2026.xlsm</strong> in Teams.
     </p>
     <div style="background: var(--bg); padding: 12px; border-radius: 8px; border: 1px solid var(--line); margin-bottom: 14px;">
-      <label style="font-size: 0.82rem; margin-bottom: 4px;">Your Live Webhook Endpoint:</label>
+      <label style="font-size: 0.82rem; margin-bottom: 4px;">Power Automate Webhook Endpoint:</label>
       <div style="display: flex; gap: 8px;">
-        <input type="text" id="webhookUrl" readonly value="https://naren2503-team-tracker.onrender.com/api/imports/webhook?token=&lt;WEBHOOK_TOKEN&gt;&amp;mode=merge" style="font-family: monospace; font-size: 0.85rem;">
+        <input type="text" id="webhookUrl" readonly value="{{ webhook_url }}" style="font-family: monospace; font-size: 0.85rem;">
         <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('webhookUrl').value); showNotice('Webhook URL copied to clipboard!');" style="white-space: nowrap;">Copy</button>
       </div>
+      <label style="font-size: 0.82rem; margin: 10px 0 4px;">Office Script JSON Sync Endpoint:</label>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="officeScriptSyncUrl" readonly value="{{ office_script_sync_url }}" style="font-family: monospace; font-size: 0.85rem;">
+        <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('officeScriptSyncUrl').value); showNotice('Office Script URL copied to clipboard!');" style="white-space: nowrap;">Copy</button>
+      </div>
     </div>
-    <details style="border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: var(--surface); margin-bottom: 12px;">
-      <summary style="cursor: pointer; font-weight: 700; color: var(--accent);">📊 Office Script for Excel Online / Teams (100% Free)</summary>
+    <details open style="border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: var(--surface); margin-bottom: 12px;">
+      <summary style="cursor: pointer; font-weight: 700; color: var(--accent);">⚡ High-Speed Office Script for Excel Online</summary>
       <div style="margin-top: 10px; font-size: 0.88rem; line-height: 1.6; color: var(--ink);">
         <p>1. Open your tracker Excel file in <strong>Teams / Excel Online</strong>.</p>
-        <p>2. Click the <strong>Automate</strong> tab &rarr; <strong>New Script</strong>.</p>
-        <p>3. Paste the Office Script code below & click <strong>Save script</strong>.</p>
-        <p>4. Click <strong>... (More options)</strong> on the script &rarr; <strong>Add button</strong> (adds a 1-click sync button right inside your Excel sheet!).</p>
+        <p>2. Click <strong>Automate</strong> &rarr; <strong>New Script</strong>.</p>
+        <p>3. Paste the optimized fast script (reads in bulk and syncs in &lt;1 second).</p>
+        <p>4. Click <strong>... (More options)</strong> on the script &rarr; <strong>Add button</strong> (put this button at the top of your sheet for instant 1-click sync for everyone on the team).</p>
       </div>
     </details>
 
@@ -31,7 +36,7 @@
         <li>Click <strong>Create</strong> &rarr; <strong>Automated cloud flow</strong>.</li>
         <li>Choose trigger: <strong>When a file is created or modified (properties only)</strong> (Site: <code>DQ-Testing</code>, Folder: <code>/Shared Documents/General</code>).</li>
         <li>Add Action 1: <strong>Get file content</strong> (SharePoint).</li>
-        <li>Add Action 2: <strong>HTTP</strong> (Method: <code>POST</code>, URI: <code>[Paste Webhook URL above]</code>, Body: <code>[File Content]</code>).</li>
+        <li>Add Action 2: <strong>HTTP</strong> (Method: <code>POST</code>, URI: <code>[Paste Power Automate Webhook Endpoint above]</code>, Body: <code>[File Content]</code>).</li>
       </ol>
     </details>
 

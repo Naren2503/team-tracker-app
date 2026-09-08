@@ -144,8 +144,16 @@ def import_page(request: Request, db: Session = Depends(get_db), user: User | No
     if IMPORT_EXCEL not in user_permissions(user, db):
         return RedirectResponse("/")
     imports_list = db.execute(select(ImportBatch).order_by(ImportBatch.started_at.desc()).limit(20)).scalars().all()
+    settings = get_settings()
+    webhook_token = settings.webhook_token or "<WEBHOOK_TOKEN>"
+    app_url = str(request.base_url).rstrip("/")
     context = page_context(request, user, db)
-    context.update({"imports": imports_list, "page": "import"})
+    context.update({
+        "imports": imports_list,
+        "page": "import",
+        "webhook_url": f"{app_url}/api/imports/webhook?token={webhook_token}&mode=replace",
+        "office_script_sync_url": f"{app_url}/api/imports/office-script-sync?token={webhook_token}&mode=replace",
+    })
     return templates.TemplateResponse("import.html", context)
 
 

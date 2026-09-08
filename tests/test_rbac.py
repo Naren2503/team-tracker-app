@@ -51,6 +51,16 @@ def test_public_webhook_rejects_previous_hardcoded_token(client):
     assert configured.json()["detail"].startswith("Uploaded file is not a valid Excel file")
 
 
+def test_import_page_shows_configured_sync_urls(client):
+    login(client, "admin@test.local")
+    response = client.get("/import")
+    assert response.status_code == 200
+    assert "team-tracker-sync" not in response.text
+    assert "token=test-webhook-secret&amp;mode=replace" in response.text
+    assert "/api/imports/webhook" in response.text
+    assert "/api/imports/office-script-sync" in response.text
+
+
 def test_admin_user_list_does_not_expose_password_hashes(client):
     login(client, "admin@test.local")
     response = client.get("/api/admin/users")
