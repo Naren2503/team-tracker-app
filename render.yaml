@@ -17,7 +17,7 @@ services:
       - key: SECURE_COOKIES
         value: "true"
       - key: CORS_ORIGINS
-        value: "https://naren-tracker-launch.onrender.com,https://excel.officeapps.live.com,https://excel.office.com"
+        value: "*"
       - key: DATABASE_URL
         sync: false
       - key: SEED_ADMIN_EMAIL

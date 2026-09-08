@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     session_minutes: int = 480
     secure_cookies: bool = False
     webhook_token: str | None = None
-    cors_origins: str = "http://127.0.0.1:8000,http://localhost:8000,https://excel.officeapps.live.com,https://excel.office.com"
+    cors_origins: str = "*"
     seed_admin_email: str | None = None
     seed_admin_password: str | None = None
     seed_admin_name: str = "Initial Admin"
