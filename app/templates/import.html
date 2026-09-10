@@ -42,24 +42,6 @@
       <p style="margin: 10px 0 0; font-size: 0.85rem; color: var(--muted);">For the Excel <strong>Run script</strong> action, use <code>scripts/excel_power_automate_sync.ts</code>. The direct fetch-based script is not compatible with Power Automate.</p>
     </details>
 
-    <hr style="border: none; border-top: 1px solid var(--line); margin: 20px 0;">
-
-    <h2>🔗 Sync from Link</h2>
-    <form id="urlSyncForm" class="stack" onsubmit="event.preventDefault(); syncFromUrl();">
-      <label>Excel File URL (Public / Direct download)
-        <input type="url" id="syncUrlInput" placeholder="https://..." value="https://skyglobal.sharepoint.com/:x:/r/sites/DQ-Testing/Shared%20Documents/General/DQ%20-%20Testing%20Tracker%20-%202026.xlsm" required>
-      </label>
-      <label>Mode
-        <select id="syncUrlMode">
-          <option value="merge">Merge (Update existing + Add new)</option>
-          <option value="replace">Replace all records</option>
-          <option value="add">Add new records only</option>
-        </select>
-      </label>
-      <div class="actions">
-        <button type="submit" id="syncUrlBtn">Sync from URL</button>
-      </div>
-    </form>
   </section>
 
   <section class="panel">

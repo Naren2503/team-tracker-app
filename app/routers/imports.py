@@ -2,7 +2,6 @@ import csv
 import hmac
 from io import StringIO
 from typing import Any
-import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
@@ -16,11 +15,6 @@ from ..services.importer import import_grid_data, import_workbook, preview_impor
 from ..config import get_settings
 
 router = APIRouter(prefix="/api/imports", tags=["imports"])
-
-
-class SyncUrlRequest(BaseModel):
-    url: str
-    mode: str = "merge"
 
 
 class OfficeScriptSyncRequest(BaseModel):
@@ -70,48 +64,6 @@ async def import_file(mode: str = Form("merge"), file: UploadFile = File(...), d
     content = await file.read()
     validate_upload(file.filename or "upload.xlsx", content)
     batch = import_workbook(db, user, file.filename or "upload.xlsx", content, mode)
-    return {"id": batch.id, "status": batch.status, "successful_rows": batch.successful_rows, "rejected_rows": batch.rejected_rows}
-
-
-@router.post("/sync-url")
-async def sync_from_url(payload: SyncUrlRequest, db: Session = Depends(get_db), user: User = Depends(require_permission(IMPORT_EXCEL))):
-    url = payload.url.strip()
-    if not url.startswith(("http://", "https://")):
-        raise HTTPException(status_code=400, detail="Invalid URL provided")
-
-    # Format SharePoint / OneDrive download parameter if present
-    download_url = url
-    if "sharepoint.com" in download_url:
-        if "download=1" not in download_url:
-            separator = "&" if "?" in download_url else "?"
-            download_url = f"{download_url}{separator}download=1"
-
-    try:
-        async with httpx.AsyncClient(follow_redirects=True, timeout=60.0) as client:
-            resp = await client.get(download_url)
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Failed to fetch file from URL: {exc}")
-
-    if resp.status_code != 200:
-        raise HTTPException(status_code=400, detail=f"Remote server responded with status {resp.status_code}")
-
-    content = resp.content
-    # Check if we received an HTML login redirect (common with protected SharePoint / Teams links)
-    if content.startswith(b"<!DOCTYPE") or content.startswith(b"<html") or b"<head>" in content[:200]:
-        raise HTTPException(
-            status_code=400,
-            detail="The SharePoint link is protected by Sky corporate login authentication. Please use the Microsoft Power Automate webhook (shown below) to auto-sync changes directly from Teams, or upload the file manually."
-        )
-
-    # Validate Excel zip signature PK (0x50, 0x4B, 0x03, 0x04)
-    if not content.startswith(b"PK\x03\x04"):
-        raise HTTPException(status_code=400, detail="The fetched URL did not return a valid Excel (.xlsx / .xlsm) file.")
-
-    file_name = url.split("/")[-1].split("?")[0] or "teams_sync.xlsm"
-    if not file_name.endswith((".xlsx", ".xlsm")):
-        file_name += ".xlsm"
-
-    batch = import_workbook(db, user, file_name, content, payload.mode)
     return {"id": batch.id, "status": batch.status, "successful_rows": batch.successful_rows, "rejected_rows": batch.rejected_rows}
 
 

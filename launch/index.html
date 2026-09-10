@@ -44,10 +44,10 @@
     .track { position: absolute; left: 6px; right: 6px; top: 45px; height: 2px; background: var(--line); }
     .pulse { position: absolute; top: 39px; width: 14px; height: 14px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 8px rgba(90, 200, 173, .12); animation: travel 2.1s ease-in-out infinite; }
     .bar { position: absolute; bottom: 0; width: 12px; border-radius: 3px 3px 0 0; transform-origin: bottom; animation: rise 1.4s ease-in-out infinite alternate; }
-    .bar:nth-child(2) { left: 22px; height: 25px; background: var(--orange); }
-    .bar:nth-child(3) { left: 44px; height: 46px; background: var(--mint); animation-delay: .2s; }
-    .bar:nth-child(4) { left: 66px; height: 34px; background: #9aaba3; animation-delay: .4s; }
-    .bar:nth-child(5) { left: 88px; height: 64px; background: var(--orange); animation-delay: .6s; }
+    .bar:nth-child(2) { left: 32px; height: 25px; background: var(--orange); }
+    .bar:nth-child(3) { left: 54px; height: 46px; background: var(--mint); animation-delay: .2s; }
+    .bar:nth-child(4) { left: 76px; height: 34px; background: #9aaba3; animation-delay: .4s; }
+    .bar:nth-child(5) { left: 98px; height: 64px; background: var(--orange); animation-delay: .6s; }
     h1 { margin: 0; font-size: clamp(2.2rem, 8vw, 3.6rem); font-weight: 720; line-height: 1.04; letter-spacing: 0; }
     .eyebrow { margin: 0 0 12px; color: var(--orange); font-size: .75rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
     #status { min-height: 1.5em; margin: 22px 0 24px; color: var(--mist); font-size: 1rem; }
@@ -55,7 +55,7 @@
     .progress::after { content: ""; display: block; width: 42%; height: 100%; background: var(--mint); animation: progress 1.4s ease-in-out infinite; }
     a { display: inline-block; margin-top: 28px; color: var(--ink); font-size: .92rem; text-underline-offset: 5px; }
     @keyframes reveal { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes travel { 0%, 100% { left: 0; } 50% { left: 146px; } }
+    @keyframes travel { 0%, 100% { left: 10px; } 50% { left: 140px; } }
     @keyframes rise { from { transform: scaleY(.45); opacity: .65; } to { transform: scaleY(1); opacity: 1; } }
     @keyframes progress { from { transform: translateX(-105%); } to { transform: translateX(340%); } }
     @media (max-width: 480px) {
