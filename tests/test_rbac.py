@@ -62,6 +62,26 @@ def test_webhook_uses_safe_custom_sync_source(client):
     assert response.json()["detail"].startswith("Uploaded file is not a valid Excel file")
 
 
+def test_webhook_skips_unchanged_workbook(client):
+    from tests.test_importer import make_workbook
+
+    first = client.post(
+        "/api/imports/webhook?token=test-webhook-secret",
+        content=make_workbook(),
+        headers={"Content-Type": "application/vnd.ms-excel"},
+    )
+    second = client.post(
+        "/api/imports/webhook?token=test-webhook-secret",
+        content=make_workbook(),
+        headers={"Content-Type": "application/vnd.ms-excel"},
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second.json()["import_status"] == "unchanged"
+    assert second.json()["batch_id"] == first.json()["batch_id"]
+
+
 def test_import_page_shows_configured_sync_urls(client):
     login(client, "admin@test.local")
     response = client.get("/import")

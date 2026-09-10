@@ -1,4 +1,5 @@
 import csv
+from hashlib import sha256
 import hmac
 from io import StringIO
 from typing import Any
@@ -97,6 +98,22 @@ async def webhook_import(
 
     if not content.startswith(b"PK\x03\x04"):
         raise HTTPException(status_code=400, detail="Uploaded file is not a valid Excel file (.xlsx / .xlsm)")
+
+    file_hash = sha256(content).hexdigest()
+    previous_batch = db.execute(
+        select(ImportBatch)
+        .where(ImportBatch.file_hash == file_hash, ImportBatch.status == "completed")
+        .order_by(ImportBatch.completed_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    if previous_batch:
+        return {
+            "status": "success",
+            "batch_id": previous_batch.id,
+            "import_status": "unchanged",
+            "successful_rows": previous_batch.successful_rows,
+            "rejected_rows": previous_batch.rejected_rows,
+        }
 
     actor = get_sync_actor(db)
     batch = import_workbook(db, actor, file_name, content, mode)
