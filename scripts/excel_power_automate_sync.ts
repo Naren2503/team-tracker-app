@@ -1,4 +1,4 @@
-const SOURCE_SHEETS = ["DQ Task Tracker", "Daily Report - FT", "Daily Report - BT"];
+const SOURCE_SHEETS = ["DQ Task Tracker", "Daily Report - FT"];
 
 type CellValue = string | number | boolean;
 

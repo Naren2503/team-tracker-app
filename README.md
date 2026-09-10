@@ -31,6 +31,14 @@ uvicorn app.main:app --reload
 
 Open `http://127.0.0.1:8000`.
 
+## Render Cold Start Page
+
+The free Render web service may take time to wake after inactivity. Open the static Naren Tracker launch page first instead of bookmarking the application URL directly:
+
+`https://naren-tracker-launch.onrender.com/`
+
+The launch page stays visible while it checks the application health endpoint and automatically opens Team Tracker once Render is ready. To open a specific page after the application wakes, append its path, for example `https://naren-tracker-launch.onrender.com/?path=/monthly`.
+
 ## Workbook Import
 
 Use the Import page to upload `.xlsx` or `.xlsm` files. The importer reads the analysed source sheets:

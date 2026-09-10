@@ -1,5 +1,5 @@
 const SYNC_URL = "PASTE_THE_OFFICE_SCRIPT_SYNC_URL_HERE";
-const SOURCE_SHEETS = ["DQ Task Tracker", "Daily Report - FT", "Daily Report - BT"];
+const SOURCE_SHEETS = ["DQ Task Tracker", "Daily Report - FT"];
 
 type CellValue = string | number | boolean;
 
