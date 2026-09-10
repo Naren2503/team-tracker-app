@@ -54,6 +54,7 @@ label { display: grid; gap: 6px; color: var(--muted); font-weight: 700; }
 .monthly-report > .monthly-details { order: 3; width: 100%; }
 .panel { padding: 18px; margin-bottom: 18px; }
 .sync-loading { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; background: rgba(17, 23, 21, .72); backdrop-filter: blur(4px); }
+.sync-loading[hidden] { display: none; }
 .sync-loading__panel { width: min(360px, 100%); display: grid; justify-items: center; gap: 10px; padding: 28px 24px; text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
 .sync-loading__panel strong { font-size: 1.1rem; }
 .sync-loading__panel span { color: var(--muted); font-size: .9rem; }
