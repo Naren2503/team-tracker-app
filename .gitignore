@@ -1,5 +1,6 @@
 .env
 scripts/local_workbook_sync.config.ps1
+scripts/local_workbook_sync.state
 team_tracker.db
 __pycache__/
 .pytest_cache/

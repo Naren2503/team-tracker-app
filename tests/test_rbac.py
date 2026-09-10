@@ -82,6 +82,28 @@ def test_webhook_skips_unchanged_workbook(client):
     assert second.json()["batch_id"] == first.json()["batch_id"]
 
 
+def test_manual_import_skips_unchanged_workbook(client):
+    from tests.test_importer import make_workbook
+
+    login(client, "admin@test.local")
+    file_content = make_workbook()
+    first = client.post(
+        "/api/imports",
+        files={"file": ("tracker.xlsm", file_content, "application/vnd.ms-excel")},
+        data={"mode": "replace"},
+    )
+    second = client.post(
+        "/api/imports",
+        files={"file": ("tracker.xlsm", file_content, "application/vnd.ms-excel")},
+        data={"mode": "replace"},
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second.json()["status"] == "unchanged"
+    assert second.json()["id"] == first.json()["id"]
+
+
 def test_import_page_shows_configured_sync_urls(client):
     login(client, "admin@test.local")
     response = client.get("/import")

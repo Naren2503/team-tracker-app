@@ -53,6 +53,16 @@ def get_sync_actor(db: Session) -> User:
     return user
 
 
+def find_completed_batch(db: Session, content: bytes, mode: str) -> ImportBatch | None:
+    file_hash = sha256(content).hexdigest()
+    return db.execute(
+        select(ImportBatch)
+        .where(ImportBatch.file_hash == file_hash, ImportBatch.mode == mode, ImportBatch.status == "completed")
+        .order_by(ImportBatch.completed_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+
+
 @router.post("/preview")
 async def preview(file: UploadFile = File(...), user: User = Depends(require_permission(IMPORT_EXCEL))):
     content = await file.read()
@@ -64,6 +74,9 @@ async def preview(file: UploadFile = File(...), user: User = Depends(require_per
 async def import_file(mode: str = Form("merge"), file: UploadFile = File(...), db: Session = Depends(get_db), user: User = Depends(require_permission(IMPORT_EXCEL))):
     content = await file.read()
     validate_upload(file.filename or "upload.xlsx", content)
+    previous_batch = find_completed_batch(db, content, mode)
+    if previous_batch:
+        return {"id": previous_batch.id, "status": "unchanged", "successful_rows": previous_batch.successful_rows, "rejected_rows": previous_batch.rejected_rows}
     batch = import_workbook(db, user, file.filename or "upload.xlsx", content, mode)
     return {"id": batch.id, "status": batch.status, "successful_rows": batch.successful_rows, "rejected_rows": batch.rejected_rows}
 
@@ -99,13 +112,7 @@ async def webhook_import(
     if not content.startswith(b"PK\x03\x04"):
         raise HTTPException(status_code=400, detail="Uploaded file is not a valid Excel file (.xlsx / .xlsm)")
 
-    file_hash = sha256(content).hexdigest()
-    previous_batch = db.execute(
-        select(ImportBatch)
-        .where(ImportBatch.file_hash == file_hash, ImportBatch.status == "completed")
-        .order_by(ImportBatch.completed_at.desc())
-        .limit(1)
-    ).scalar_one_or_none()
+    previous_batch = find_completed_batch(db, content, mode)
     if previous_batch:
         return {
             "status": "success",

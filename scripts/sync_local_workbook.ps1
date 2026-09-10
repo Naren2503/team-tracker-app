@@ -6,6 +6,7 @@ if (-not (Test-Path -LiteralPath $configPath)) {
 }
 
 . $configPath
+$statePath = Join-Path $PSScriptRoot "local_workbook_sync.state"
 
 foreach ($setting in "WorkbookPath", "TeamTrackerBaseUrl", "WebhookToken") {
     if (-not (Get-Variable -Name $setting -ValueOnly -ErrorAction SilentlyContinue)) {
@@ -26,6 +27,12 @@ if ($content.Length -lt 4 -or $content[0] -ne 0x50 -or $content[1] -ne 0x4B -or 
     throw "Workbook is not a valid .xlsx or .xlsm file: $WorkbookPath"
 }
 
+$currentHash = (Get-FileHash -LiteralPath $WorkbookPath -Algorithm SHA256).Hash
+if ((Test-Path -LiteralPath $statePath) -and ((Get-Content -LiteralPath $statePath -Raw).Trim() -eq $currentHash)) {
+    Write-Output "Workbook unchanged; sync skipped."
+    exit 0
+}
+
 $mode = if ($ImportMode) { $ImportMode } else { "replace" }
 $token = [uri]::EscapeDataString($WebhookToken)
 $baseUrl = $TeamTrackerBaseUrl.TrimEnd("/")
@@ -35,6 +42,7 @@ try {
     $headers = @{ "X-Team-Tracker-Source" = "windows_task_scheduler_sync.xlsm" }
     $result = Invoke-RestMethod -Uri $syncUrl -Method Post -ContentType "application/vnd.ms-excel" -Headers $headers -Body $content -TimeoutSec 300
     $result | ConvertTo-Json -Depth 5
+    Set-Content -LiteralPath $statePath -Value $currentHash -NoNewline
     if ($result.rejected_rows -gt 0) {
         exit 2
     }
