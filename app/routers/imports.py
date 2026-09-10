@@ -126,7 +126,9 @@ async def webhook_import(
 
     content_type = request.headers.get("content-type", "")
     content = b""
-    file_name = "teams_auto_sync.xlsm"
+    file_name = request.headers.get("X-Team-Tracker-Source", "teams_auto_sync.xlsm")
+    if not file_name.lower().endswith((".xlsx", ".xlsm")):
+        file_name = "teams_auto_sync.xlsm"
 
     if "multipart/form-data" in content_type:
         form = await request.form()

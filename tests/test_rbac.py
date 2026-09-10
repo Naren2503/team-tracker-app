@@ -51,6 +51,17 @@ def test_public_webhook_rejects_previous_hardcoded_token(client):
     assert configured.json()["detail"].startswith("Uploaded file is not a valid Excel file")
 
 
+def test_webhook_uses_safe_custom_sync_source(client):
+    response = client.post(
+        "/api/imports/webhook?token=test-webhook-secret",
+        headers={"X-Team-Tracker-Source": "windows_task_scheduler_sync.xlsm"},
+        content=b"not-an-excel-file",
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"].startswith("Uploaded file is not a valid Excel file")
+
+
 def test_import_page_shows_configured_sync_urls(client):
     login(client, "admin@test.local")
     response = client.get("/import")

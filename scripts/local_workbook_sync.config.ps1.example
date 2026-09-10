@@ -1,0 +1,4 @@
+$WorkbookPath = "C:\Users\your-name\Sky\DQ-Testing - Documents\General\DQ - Testing Tracker - 2026.xlsm"
+$TeamTrackerBaseUrl = "https://naren2503-team-tracker.onrender.com"
+$WebhookToken = "PASTE_RENDER_WEBHOOK_TOKEN_HERE"
+$ImportMode = "replace"

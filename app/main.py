@@ -144,12 +144,19 @@ def import_page(request: Request, db: Session = Depends(get_db), user: User | No
     if IMPORT_EXCEL not in user_permissions(user, db):
         return RedirectResponse("/")
     imports_list = db.execute(select(ImportBatch).order_by(ImportBatch.started_at.desc()).limit(20)).scalars().all()
+    latest_windows_sync = db.execute(
+        select(ImportBatch)
+        .where(ImportBatch.file_name == "windows_task_scheduler_sync.xlsm")
+        .order_by(ImportBatch.started_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
     settings = get_settings()
     webhook_token = settings.webhook_token or "<WEBHOOK_TOKEN>"
     app_url = str(request.base_url).rstrip("/")
     context = page_context(request, user, db)
     context.update({
         "imports": imports_list,
+        "latest_windows_sync": latest_windows_sync,
         "page": "import",
         "webhook_url": f"{app_url}/api/imports/webhook?token={webhook_token}&mode=replace",
         "office_script_sync_url": f"{app_url}/api/imports/office-script-sync?token={webhook_token}&mode=replace",

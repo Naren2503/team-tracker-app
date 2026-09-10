@@ -33,7 +33,7 @@ Open `http://127.0.0.1:8000`.
 
 ## Render Cold Start Page
 
-The free Render web service may take time to wake after inactivity. Open the static Naren Tracker launch page first instead of bookmarking the application URL directly:
+The free Render web service may take time to wake after inactivity. Open the static DQ Team Tracker launch page first instead of bookmarking the application URL directly:
 
 `https://naren-tracker-launch.onrender.com/`
 
@@ -79,6 +79,17 @@ The Microsoft Entra app used for `MS_CLIENT_ID` needs Microsoft Graph applicatio
 
 The workflow uses `replace` mode so the Team Tracker always reflects the latest workbook contents. It downloads the workbook directly from SharePoint and posts it to the protected Team Tracker webhook. GitHub scheduled workflows are not guaranteed to start at the exact five-minute mark, so allow a few minutes after a workbook change.
 
+## Local Windows Workbook Sync
+
+If the SharePoint library is synchronized to OneDrive on a Windows PC, use `scripts/sync_local_workbook.ps1` as a no-premium alternative to Power Automate and GitHub Actions. It uploads the locally synchronized workbook directly to Team Tracker; the PC must be powered on, signed in, and online.
+
+1. Copy `scripts/local_workbook_sync.config.ps1.example` to `scripts/local_workbook_sync.config.ps1`.
+2. Set the local SharePoint-synchronized workbook path and the Render `WEBHOOK_TOKEN` in the copied file. The local configuration file is ignored by Git.
+3. Test it from PowerShell: `powershell -ExecutionPolicy Bypass -File .\scripts\sync_local_workbook.ps1`.
+4. In Windows Task Scheduler, create a task that starts at sign-in and repeats every 5 minutes. Its action is `powershell.exe` with arguments `-NoProfile -ExecutionPolicy Bypass -File "C:\Users\nsr467\team-tracker-app\scripts\sync_local_workbook.ps1"`.
+
+The script imports with `replace` mode, so the dashboard reflects the workbook after each successful run. Do not use a workbook path still being copied by OneDrive; wait for its sync status to finish first.
+
 ## Excel Online Run Script Sync
 
 The direct Excel Online Run Script workflow is separate from the scheduled GitHub Actions sync. To configure the direct one-click workflow once:
@@ -86,7 +97,7 @@ The direct Excel Online Run Script workflow is separate from the scheduled GitHu
 1. Open the Import page and copy the `Office Script JSON Sync Endpoint`.
 2. Open the workbook in Teams or Excel Online, select **Automate** -> **New Script**, and paste the contents of `scripts/excel_office_sync.ts`.
 3. Replace `SYNC_URL` in the script with the copied endpoint and save it.
-4. Run the script whenever the workbook changes. It reads `DQ Task Tracker`, `Daily Report - FT`, and `Daily Report - BT`, then replaces the application data with the workbook contents.
+4. Run the script whenever the workbook changes. It reads `DQ Task Tracker` and `Daily Report - FT`, then replaces the application data with the workbook contents.
 
 The endpoint includes the webhook token, so do not commit a customized script containing the endpoint. The repository version contains only a placeholder. The script must be run from Excel Online; it is not executed automatically by the application.
 
