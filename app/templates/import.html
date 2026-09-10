@@ -23,9 +23,10 @@
       <summary style="cursor: pointer; font-weight: 700; color: var(--accent);">⚡ High-Speed Office Script for Excel Online</summary>
       <div style="margin-top: 10px; font-size: 0.88rem; line-height: 1.6; color: var(--ink);">
         <p>1. Open your tracker Excel file in <strong>Teams / Excel Online</strong>.</p>
-        <p>2. Click <strong>Automate</strong> &rarr; <strong>New Script</strong>.</p>
-        <p>3. Paste the optimized fast script (reads in bulk and syncs in &lt;1 second).</p>
-        <p>4. Click <strong>... (More options)</strong> on the script &rarr; <strong>Add button</strong> (put this button at the top of your sheet for instant 1-click sync for everyone on the team).</p>
+        <p>2. Copy the script from <code>scripts/excel_office_sync.ts</code> into <strong>Automate</strong> &rarr; <strong>New Script</strong>.</p>
+        <p>3. Replace <code>SYNC_URL</code> with the Office Script JSON Sync Endpoint above, then save the script.</p>
+        <p>4. Run the script whenever the workbook changes. It reads all supported sheets and replaces the tracker data with the latest workbook contents.</p>
+        <p>5. Use <strong>... (More options)</strong> &rarr; <strong>Add button</strong> to make the sync a one-click action for the team.</p>
       </div>
     </details>
 
@@ -38,6 +39,7 @@
         <li>Add Action 1: <strong>Get file content</strong> (SharePoint).</li>
         <li>Add Action 2: <strong>HTTP</strong> (Method: <code>POST</code>, URI: <code>[Paste Power Automate Webhook Endpoint above]</code>, Body: <code>[File Content]</code>).</li>
       </ol>
+      <p style="margin: 10px 0 0; font-size: 0.85rem; color: var(--muted);">For the Excel <strong>Run script</strong> action, use <code>scripts/excel_power_automate_sync.ts</code>. The direct fetch-based script is not compatible with Power Automate.</p>
     </details>
 
     <hr style="border: none; border-top: 1px solid var(--line); margin: 20px 0;">

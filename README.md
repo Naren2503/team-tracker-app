@@ -47,7 +47,7 @@ Supported modes:
 
 ## Automatic SharePoint Sync
 
-For a free automatic sync, use GitHub Actions with Microsoft Graph. The workflow in `.github/workflows/sharepoint-sync.yml` runs every 30 minutes and can also be started manually.
+For a free automatic sync, use GitHub Actions with Microsoft Graph. The workflow in `.github/workflows/sharepoint-sync.yml` checks for workbook changes every 5 minutes and can also be started manually. No Power Automate HTTP action is required.
 
 Configure these GitHub repository secrets:
 
@@ -68,6 +68,31 @@ Optional repository variable:
 - `TEAM_TRACKER_BASE_URL`, defaults to `https://naren2503-team-tracker.onrender.com`
 
 The Microsoft Entra app used for `MS_CLIENT_ID` needs Microsoft Graph application access to read the SharePoint file, such as `Sites.Read.All`, with admin consent.
+
+The workflow uses `replace` mode so the Team Tracker always reflects the latest workbook contents. It downloads the workbook directly from SharePoint and posts it to the protected Team Tracker webhook. GitHub scheduled workflows are not guaranteed to start at the exact five-minute mark, so allow a few minutes after a workbook change.
+
+## Excel Online Run Script Sync
+
+The direct Excel Online Run Script workflow is separate from the scheduled GitHub Actions sync. To configure the direct one-click workflow once:
+
+1. Open the Import page and copy the `Office Script JSON Sync Endpoint`.
+2. Open the workbook in Teams or Excel Online, select **Automate** -> **New Script**, and paste the contents of `scripts/excel_office_sync.ts`.
+3. Replace `SYNC_URL` in the script with the copied endpoint and save it.
+4. Run the script whenever the workbook changes. It reads `DQ Task Tracker`, `Daily Report - FT`, and `Daily Report - BT`, then replaces the application data with the workbook contents.
+
+The endpoint includes the webhook token, so do not commit a customized script containing the endpoint. The repository version contains only a placeholder. The script must be run from Excel Online; it is not executed automatically by the application.
+
+### Power Automate limitation
+
+Power Automate can trigger an Office Script when the SharePoint workbook is modified, but Office Scripts executed by Power Automate cannot make `fetch` calls to external APIs. Therefore, `scripts/excel_office_sync.ts` is for manual Excel Online execution only and will fail in Power Automate with `fetch is not defined`.
+
+For a Power Automate flow, use `scripts/excel_power_automate_sync.ts` with this flow:
+
+1. Trigger: SharePoint **When a file is created or modified (properties only)** for the workbook.
+2. Action: Excel Online (Business) **Run script from SharePoint library** using `excel_power_automate_sync.ts`.
+3. Action: send the returned `sheets` and `mode` to `/api/imports/office-script-sync` using an HTTP or equivalent custom connector action.
+
+There is no way for Power Automate to update this Team Tracker application with zero delivery action. If HTTP is prohibited, use the existing scheduled GitHub Actions SharePoint sync instead, or build a Power Automate custom connector/database integration. The flow can still trigger the script without an HTTP trigger; the HTTP action is only the outbound step that delivers the result to Team Tracker.
 
 ## Security Notes
 

@@ -61,6 +61,25 @@ def test_import_page_shows_configured_sync_urls(client):
     assert "/api/imports/office-script-sync" in response.text
 
 
+def test_office_script_sync_accepts_workbook_grid(client):
+    response = client.post(
+        "/api/imports/office-script-sync?token=test-webhook-secret&mode=replace",
+        json={
+            "sheets": {
+                "DQ Task Tracker": [
+                    ["Ticket ID", "Date Started", "Date Ended", "Tester", "DQ Status"],
+                    ["DQ9001", "2026-01-01", None, "Tester", "In progress"],
+                ]
+            },
+            "mode": "replace",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+    assert response.json()["successful_rows"] == 1
+
+
 def test_admin_user_list_does_not_expose_password_hashes(client):
     login(client, "admin@test.local")
     response = client.get("/api/admin/users")

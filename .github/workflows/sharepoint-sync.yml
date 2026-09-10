@@ -3,17 +3,51 @@ name: SharePoint workbook sync
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "*/5 * * * *"
+
+concurrency:
+  group: sharepoint-workbook-sync
+  cancel-in-progress: false
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
-      - name: Sync SharePoint workbook to Team Tracker
+      - name: Validate sync configuration
+        env:
+          MS_TENANT_ID: ${{ secrets.MS_TENANT_ID }}
+          MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
+          MS_CLIENT_SECRET: ${{ secrets.MS_CLIENT_SECRET }}
+          SHAREPOINT_SITE_ID: ${{ secrets.SHAREPOINT_SITE_ID }}
+          SHAREPOINT_DRIVE_ID: ${{ secrets.SHAREPOINT_DRIVE_ID }}
+          SHAREPOINT_FILE_PATH: ${{ secrets.SHAREPOINT_FILE_PATH }}
+          SHAREPOINT_ITEM_ID: ${{ secrets.SHAREPOINT_ITEM_ID }}
+          TEAM_TRACKER_WEBHOOK_TOKEN: ${{ secrets.TEAM_TRACKER_WEBHOOK_TOKEN }}
+        shell: bash
+        run: |
+          missing=0
+          for name in MS_TENANT_ID MS_CLIENT_ID MS_CLIENT_SECRET SHAREPOINT_SITE_ID SHAREPOINT_DRIVE_ID TEAM_TRACKER_WEBHOOK_TOKEN; do
+            if [ -z "${!name}" ]; then
+              echo "Missing GitHub secret: $name"
+              missing=1
+            fi
+          done
+          if [ -z "$SHAREPOINT_FILE_PATH" ] && [ -z "$SHAREPOINT_ITEM_ID" ]; then
+            echo "Set either SHAREPOINT_FILE_PATH or SHAREPOINT_ITEM_ID"
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+          echo "Required sync configuration is present."
+
+      - name: Download and import latest workbook
         env:
           MS_TENANT_ID: ${{ secrets.MS_TENANT_ID }}
           MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
