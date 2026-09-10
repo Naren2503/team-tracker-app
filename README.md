@@ -86,7 +86,7 @@ If the SharePoint library is synchronized to OneDrive on a Windows PC, use `scri
 1. Copy `scripts/local_workbook_sync.config.ps1.example` to `scripts/local_workbook_sync.config.ps1`.
 2. Set the local SharePoint-synchronized workbook path and the Render `WEBHOOK_TOKEN` in the copied file. The local configuration file is ignored by Git.
 3. Test it from PowerShell: `powershell -ExecutionPolicy Bypass -File .\scripts\sync_local_workbook.ps1`.
-4. In Windows Task Scheduler, create a task that starts at sign-in and repeats every 5 minutes. Its action is `powershell.exe` with arguments `-NoProfile -ExecutionPolicy Bypass -File "C:\Users\nsr467\team-tracker-app\scripts\sync_local_workbook.ps1"`.
+4. In Windows Task Scheduler, create a task that starts at sign-in and repeats every 5 minutes. Its action is `powershell.exe` with arguments `-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "C:\Users\nsr467\team-tracker-app\scripts\sync_local_workbook.ps1"`.
 
 The script imports with `replace` mode, so the dashboard reflects the workbook after each successful run. Do not use a workbook path still being copied by OneDrive; wait for its sync status to finish first.
 
