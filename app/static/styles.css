@@ -53,6 +53,19 @@ label { display: grid; gap: 6px; color: var(--muted); font-weight: 700; }
 .monthly-report > .monthly-history { order: 2; width: 100%; }
 .monthly-report > .monthly-details { order: 3; width: 100%; }
 .panel { padding: 18px; margin-bottom: 18px; }
+.sync-loading { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; background: rgba(17, 23, 21, .72); backdrop-filter: blur(4px); }
+.sync-loading__panel { width: min(360px, 100%); display: grid; justify-items: center; gap: 10px; padding: 28px 24px; text-align: center; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
+.sync-loading__panel strong { font-size: 1.1rem; }
+.sync-loading__panel span { color: var(--muted); font-size: .9rem; }
+.sync-loading__mark { height: 42px; display: flex; align-items: end; gap: 7px; }
+.sync-loading__mark i { display: block; width: 9px; height: 22px; background: var(--accent); border-radius: 3px 3px 0 0; animation: sync-rise 1s ease-in-out infinite alternate; }
+.sync-loading__mark i:nth-child(2) { height: 34px; background: var(--accent-2); animation-delay: .15s; }
+.sync-loading__mark i:nth-child(3) { height: 27px; background: #8b9a92; animation-delay: .3s; }
+.sync-loading__mark i:nth-child(4) { height: 39px; background: var(--accent); animation-delay: .45s; }
+.sync-loading__bar { width: 100%; height: 4px; overflow: hidden; background: var(--line); border-radius: 99px; }
+.sync-loading__bar i { display: block; width: 38%; height: 100%; background: var(--accent); animation: sync-slide 1.4s ease-in-out infinite; }
+@keyframes sync-rise { from { transform: scaleY(.55); opacity: .65; } to { transform: scaleY(1); opacity: 1; } }
+@keyframes sync-slide { from { transform: translateX(-120%); } to { transform: translateX(330%); } }
 .bars { display: grid; gap: 10px; }
 .bars button { display: grid; grid-template-columns: 130px 1fr 70px; align-items: center; gap: 10px; background: transparent; color: var(--ink); border: 1px solid var(--line); text-align: left; }
 .bars i { height: 10px; max-width: 100%; min-width: 4px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 99px; }

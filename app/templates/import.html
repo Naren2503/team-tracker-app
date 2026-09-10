@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Excel & Teams Sync{% endblock %}
 {% block content %}
+<div id="syncLoading" class="sync-loading" hidden role="status" aria-live="polite">
+  <div class="sync-loading__panel">
+    <div class="sync-loading__mark" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <strong id="syncLoadingTitle">Syncing workbook</strong>
+    <span id="syncLoadingMessage">Reading the latest tracker data...</span>
+    <div class="sync-loading__bar" aria-hidden="true"><i></i></div>
+  </div>
+</div>
 <div class="grid-two">
   <section class="panel">
     <h2>⚡ Teams / SharePoint Live Auto-Sync</h2>
@@ -53,8 +61,8 @@
       <label>Workbook<input type="file" name="file" accept=".xlsx,.xlsm" required></label>
       <label>Mode<select name="mode"><option value="merge">Merge</option><option value="replace">Replace</option><option value="add">Add New Records</option></select></label>
       <div class="actions">
-        <button type="button" onclick="previewImport()">Preview</button>
-        <button type="submit">Import</button>
+        <button type="button" id="previewImportBtn" onclick="previewImport()">Preview</button>
+        <button type="submit" id="importSubmitBtn">Import</button>
       </div>
     </form>
     <pre id="importPreview" class="preview" style="margin-top: 14px; max-height: 250px; overflow-y: auto; background: var(--bg); padding: 10px; border-radius: 8px; font-size: 0.8rem;"></pre>

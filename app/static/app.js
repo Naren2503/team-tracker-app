@@ -292,11 +292,31 @@ if (document.getElementById('trackerStatusChart')) refreshTracker();
 async function previewImport() {
   const form = document.getElementById('importForm');
   const output = document.getElementById('importPreview');
+  const button = document.getElementById('previewImportBtn');
   const data = new FormData(form);
-  const response = await fetch('/api/imports/preview', { method: 'POST', body: data });
-  const payload = await response.json();
-  output.textContent = JSON.stringify(payload, null, 2);
-  showNotice(response.ok ? 'Preview complete' : payload.detail || 'Preview failed', !response.ok);
+  setSyncLoading(true, 'Previewing workbook', 'Checking headers and row data...');
+  if (button) button.disabled = true;
+  try {
+    const response = await fetch('/api/imports/preview', { method: 'POST', body: data });
+    const payload = await response.json();
+    output.textContent = JSON.stringify(payload, null, 2);
+    showNotice(response.ok ? 'Preview complete' : payload.detail || 'Preview failed', !response.ok);
+  } catch (error) {
+    showNotice(`Preview error: ${error.message}`, true);
+  } finally {
+    setSyncLoading(false);
+    if (button) button.disabled = false;
+  }
+}
+
+function setSyncLoading(visible, title = 'Syncing workbook', message = 'Reading the latest tracker data...') {
+  const overlay = document.getElementById('syncLoading');
+  const titleElement = document.getElementById('syncLoadingTitle');
+  const messageElement = document.getElementById('syncLoadingMessage');
+  if (!overlay) return;
+  overlay.hidden = !visible;
+  if (titleElement) titleElement.textContent = title;
+  if (messageElement) messageElement.textContent = message;
 }
 
 const importForm = document.getElementById('importForm');
@@ -304,9 +324,26 @@ if (importForm) {
   importForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const data = new FormData(importForm);
-    const response = await fetch('/api/imports', { method: 'POST', body: data });
-    const payload = await response.json();
-    showNotice(response.ok ? `Import ${payload.status}: ${payload.successful_rows} accepted, ${payload.rejected_rows} rejected` : payload.detail || 'Import failed', !response.ok);
+    const submitButton = document.getElementById('importSubmitBtn');
+    setSyncLoading(true, 'Importing workbook', 'This can take a little while for a large tracker...');
+    if (submitButton) submitButton.disabled = true;
+    try {
+      const response = await fetch('/api/imports', { method: 'POST', body: data });
+      const payload = await response.json();
+      if (response.ok) {
+        setSyncLoading(true, 'Import complete', 'Refreshing sync history...');
+        showNotice(`Import ${payload.status}: ${payload.successful_rows} accepted, ${payload.rejected_rows} rejected`);
+        setTimeout(() => location.reload(), 700);
+      } else {
+        setSyncLoading(false);
+        showNotice(payload.detail || 'Import failed', true);
+      }
+    } catch (error) {
+      setSyncLoading(false);
+      showNotice(`Import error: ${error.message}`, true);
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+    }
   });
 }
 
