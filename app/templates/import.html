@@ -67,7 +67,7 @@
   <div class="grid-two" style="gap: 12px; align-items: start;">
     <div>
       <p style="margin: 0 0 6px; color: var(--muted); font-size: 0.85rem;">Last scheduled upload</p>
-      <strong>{{ latest_windows_sync.started_at.strftime('%d %b %Y, %H:%M') if latest_windows_sync.started_at else 'Starting' }}</strong>
+      <strong>{{ format_ist(latest_windows_sync.started_at) if latest_windows_sync.started_at else 'Starting' }}</strong>
     </div>
     <div>
       <p style="margin: 0 0 6px; color: var(--muted); font-size: 0.85rem;">Result</p>
@@ -89,7 +89,7 @@
       <tbody>
         {% for item in imports %}
         <tr>
-          <td>{{ item.started_at.strftime('%d %b %Y, %H:%M') if item.started_at else '-' }}</td>
+          <td>{{ format_ist(item.started_at) }}</td>
           <td>{{ item.file_name }}</td>
           <td>{{ item.mode }}</td>
           <td>{{ item.status }}</td>

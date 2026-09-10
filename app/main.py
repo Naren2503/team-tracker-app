@@ -1,5 +1,5 @@
 from calendar import monthrange
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,6 +32,14 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
+INDIA_TIMEZONE = timezone(timedelta(hours=5, minutes=30), "IST")
+
+
+def format_ist(value: datetime | None) -> str:
+    if value is None:
+        return "-"
+    aware_value = value.replace(tzinfo=UTC) if value.tzinfo is None else value
+    return aware_value.astimezone(INDIA_TIMEZONE).strftime("%d %b %Y, %H:%M IST")
 
 app.include_router(auth.router)
 app.include_router(tracker.router)
@@ -157,6 +165,7 @@ def import_page(request: Request, db: Session = Depends(get_db), user: User | No
     context.update({
         "imports": imports_list,
         "latest_windows_sync": latest_windows_sync,
+        "format_ist": format_ist,
         "page": "import",
         "webhook_url": f"{app_url}/api/imports/webhook?token={webhook_token}&mode=replace",
         "office_script_sync_url": f"{app_url}/api/imports/office-script-sync?token={webhook_token}&mode=replace",

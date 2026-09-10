@@ -72,6 +72,13 @@ def test_import_page_shows_configured_sync_urls(client):
     assert "/api/imports/office-script-sync" in response.text
 
 
+def test_import_times_are_formatted_in_ist():
+    from datetime import datetime, timezone
+    from app.main import format_ist
+
+    assert format_ist(datetime(2026, 9, 10, 10, 36, tzinfo=timezone.utc)) == "10 Sep 2026, 16:06 IST"
+
+
 def test_office_script_sync_accepts_workbook_grid(client):
     response = client.post(
         "/api/imports/office-script-sync?token=test-webhook-secret&mode=replace",
