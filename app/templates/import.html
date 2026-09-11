@@ -89,6 +89,7 @@
 
 <section class="panel">
   <h2>Import & Sync History</h2>
+  {% if 'export_data' in permissions %}<div class="actions" style="margin: -4px 0 16px;"><a class="button" href="/api/exports/tracker.csv">Export Tracker CSV</a><a class="button" href="/api/exports/work-logs.csv">Export Work Logs CSV</a></div>{% endif %}
   <div class="table-wrap">
     <table>
       <thead>

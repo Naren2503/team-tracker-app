@@ -40,6 +40,11 @@ def test_viewer_pages_and_export_do_not_expose_admin_records(client):
     export = client.get("/api/exports/tracker.csv")
     assert export.status_code == 200
     assert "ADMIN-ONLY" not in export.text
+    assert export.headers["content-disposition"] == 'attachment; filename="dq-team-tracker-records.csv"'
+
+    work_log_export = client.get("/api/exports/work-logs.csv")
+    assert work_log_export.status_code == 200
+    assert work_log_export.headers["content-disposition"] == 'attachment; filename="dq-team-tracker-work-logs.csv"'
 
 
 def test_public_webhook_rejects_previous_hardcoded_token(client):

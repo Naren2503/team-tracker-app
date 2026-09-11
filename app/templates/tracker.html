@@ -6,7 +6,7 @@
   <label>Tester<select id="trackerTesterFilter" onchange="refreshTracker()"><option value="">All testers</option>{% for tester in filters.testers %}<option>{{ tester }}</option>{% endfor %}</select></label>
   <label>Start date<input id="trackerStartDateFilter" type="date" onchange="refreshTracker()"></label>
   <label>End date<input id="trackerEndDateFilter" type="date" onchange="refreshTracker()"></label>
-  {% if 'export_data' in permissions %}<a class="button" href="/api/exports/tracker.csv">Export CSV</a>{% endif %}
+  {% if 'export_data' in permissions %}<a class="button" href="/api/exports/tracker.csv">Export Tracker CSV</a><a class="button" href="/api/exports/work-logs.csv">Export Work Logs CSV</a>{% endif %}
 </div>
 <div class="tracker-graphs grid-two">
   <section class="panel wide-panel"><h2>Ticket Status</h2><div id="trackerStatusChart" class="status-chart"></div></section>
