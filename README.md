@@ -2,6 +2,8 @@
 
 A professional web application converted from the analysed Excel tracker `DQ - Testing Tracker - 2026.xlsm`.
 
+For a manager-ready overview of the architecture, operations, security, sync options, and source ownership, see [DQ Team Tracker: End-to-End Guide](docs/manager-guide.md).
+
 ## Stack
 
 - FastAPI backend with server-rendered responsive pages
