@@ -4,6 +4,10 @@ from ..config import get_settings
 STATUS_CATEGORY_ORDER = ["To Do", "In Progress", "Done"]
 
 
+class JiraError(RuntimeError):
+    """Raised when Jira cannot be reached or returns an unexpected response."""
+
+
 def is_configured() -> bool:
     settings = get_settings()
     if not (settings.jira_base_url and settings.jira_api_token):
@@ -50,13 +54,24 @@ def _map_issue(issue: dict) -> dict:
 
 
 def search_issues(jql: str, max_results: int = 50) -> list[dict]:
-    with _client() as client:
-        response = client.get(
-            "/rest/api/3/search",
-            params={"jql": jql, "maxResults": max_results, "fields": "summary,status,assignee,priority,issuetype,updated"},
-        )
-        response.raise_for_status()
+    try:
+        with _client() as client:
+            response = client.get(
+                "/rest/api/3/search",
+                params={"jql": jql, "maxResults": max_results, "fields": "summary,status,assignee,priority,issuetype,updated"},
+            )
+    except httpx.RequestError as exc:
+        raise JiraError(f"Unable to reach Jira at {get_settings().jira_base_url}: {exc}") from exc
+    if response.status_code >= 400:
+        raise JiraError(f"Jira returned HTTP {response.status_code}: {response.text[:200]}")
+    try:
         data = response.json()
+    except ValueError as exc:
+        raise JiraError(
+            f"Jira did not return JSON (got: {response.text[:200]!r}). "
+            "This usually means the Jira base URL is not reachable from this server "
+            "(e.g. an internal-only network address) or a proxy/login page was returned instead."
+        ) from exc
     return [_map_issue(issue) for issue in data.get("issues", [])]
 
 
