@@ -123,6 +123,15 @@ def test_import_page_shows_configured_sync_urls(client):
     assert "/api/imports/office-script-sync" in response.text
 
 
+def test_monthly_page_shows_csv_export_for_authorized_user(client):
+    login(client, "admin@test.local")
+
+    response = client.get("/monthly")
+
+    assert response.status_code == 200
+    assert 'onclick="downloadMonthlyCsv()"' in response.text
+
+
 def test_import_times_are_formatted_in_ist():
     from datetime import datetime, timezone
     from app.main import format_ist
