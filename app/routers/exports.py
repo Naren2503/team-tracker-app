@@ -1,6 +1,8 @@
 import csv
+from calendar import monthrange
+from datetime import date
 from io import StringIO
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
@@ -10,6 +12,7 @@ from ..models import TrackerRecord, User, WorkLog
 from ..permissions import EXPORT_DATA, VIEW_ALL_RECORDS
 from ..dependencies import user_permissions
 from ..services.audit import audit
+from ..services.dashboard import dashboard_metrics
 
 router = APIRouter(prefix="/api/exports", tags=["exports"])
 
@@ -48,3 +51,23 @@ def export_work_logs(db: Session = Depends(get_db), user: User = Depends(require
     audit(db, user, "export", "work_logs", None, None, {"rows": len(work_logs), "format": "csv"})
     db.commit()
     return csv_response(output.getvalue(), "dq-team-tracker-work-logs.csv")
+
+
+@router.get("/monthly.csv")
+def export_monthly_report(month: str, tester: str | None = None, status: str | None = None, ticket_category: str | None = None, db: Session = Depends(get_db), user: User = Depends(require_permission(EXPORT_DATA))):
+    try:
+        year, month_number = (int(value) for value in month.split("-"))
+        start = date(year, month_number, 1)
+        end = date(year, month_number, monthrange(year, month_number)[1])
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Month must use YYYY-MM format")
+
+    metrics = dashboard_metrics(db, start=start, end=end, tester=tester, status=status, report_view="monthly", ticket_category=ticket_category)
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Ticket", "Tester", "Logged Hours", "Start Date", "End Date", "Status", "Age Days", "Comments"])
+    for ticket in metrics["ticket_ageing"]:
+        writer.writerow([ticket["ticket_id"], ticket["tester"], ticket["logged_hours"], ticket["start_date"], ticket["end_date"], ticket["status"], ticket["age_days"], ticket["comments"]])
+    audit(db, user, "export", "monthly_report", None, None, {"month": month, "tester": tester, "status": status, "ticket_category": ticket_category, "rows": len(metrics["ticket_ageing"]), "format": "csv"})
+    db.commit()
+    return csv_response(output.getvalue(), f"dq-team-tracker-monthly-{month}.csv")

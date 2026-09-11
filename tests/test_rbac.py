@@ -46,6 +46,10 @@ def test_viewer_pages_and_export_do_not_expose_admin_records(client):
     assert work_log_export.status_code == 200
     assert work_log_export.headers["content-disposition"] == 'attachment; filename="dq-team-tracker-work-logs.csv"'
 
+    monthly_export = client.get("/api/exports/monthly.csv?month=2026-09")
+    assert monthly_export.status_code == 200
+    assert monthly_export.headers["content-disposition"] == 'attachment; filename="dq-team-tracker-monthly-2026-09.csv"'
+
 
 def test_public_webhook_rejects_previous_hardcoded_token(client):
     response = client.post("/api/imports/webhook?token=team-tracker-sync", content=b"not-an-excel-file")

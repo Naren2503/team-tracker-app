@@ -140,6 +140,19 @@ function syncWeeklyMonth() {
   if (document.getElementById('granularityFilter')?.value === 'week' && start?.value && !end?.value) end.value = start.value;
 }
 
+function downloadMonthlyCsv() {
+  const month = document.getElementById('monthlyMonthFilter')?.value;
+  if (!month) return showNotice('Select a month before exporting', true);
+  const params = new URLSearchParams({ month });
+  const tester = document.getElementById('testerFilter')?.value;
+  const status = document.getElementById('statusFilter')?.value;
+  const ticketCategory = document.getElementById('ticketCategoryFilter')?.value;
+  if (tester) params.set('tester', tester);
+  if (status) params.set('status', status);
+  if (ticketCategory) params.set('ticket_category', ticketCategory);
+  window.location.assign(`/api/exports/monthly.csv?${params}`);
+}
+
 async function refreshDashboard() {
   rememberFilters();
   const view = document.body.dataset.view || 'dashboard';
