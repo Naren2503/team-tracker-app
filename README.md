@@ -39,6 +39,17 @@ The free Render web service may take time to wake after inactivity. Open the sta
 
 The launch page stays visible while it checks the application health endpoint and automatically opens Team Tracker once Render is ready. To open a specific page after the application wakes, append its path, for example `https://naren-tracker-launch.onrender.com/?path=/monthly`.
 
+## Cloudflare Cold Start Proxy
+
+To show the DQ Team Tracker loading page on every refresh, deploy `cloudflare/worker.js` as a Cloudflare Worker. The Worker is an always-available proxy: it forwards normal requests to Render and shows the branded loading page only while the Render service is waking.
+
+1. Create a free Cloudflare account, then open **Workers & Pages** and select **Create application** -> **Create Worker**.
+2. Name it `dq-team-tracker-proxy`, replace the generated Worker code with `cloudflare/worker.js`, and select **Deploy**.
+3. Open the generated `https://dq-team-tracker-proxy.<your-subdomain>.workers.dev` address and sign in to Team Tracker there.
+4. Bookmark and share the Worker address, not the `onrender.com` application address. Refreshes through the Worker show the DQ Team Tracker loading page instead of Render's cold-start screen.
+
+For a production-friendly address, attach a custom domain to the Worker in Cloudflare. Do not point the domain directly to Render; it must remain attached to the Worker. Cookies are specific to the Worker/custom-domain address, so users may need to sign in once after switching from the direct Render URL.
+
 ## Workbook Import
 
 Use the Import page to upload `.xlsx` or `.xlsm` files. The importer reads the analysed source sheets:
