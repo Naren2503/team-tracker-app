@@ -13,9 +13,10 @@ from .database import Base, engine, get_db
 from .config import get_settings
 from .dependencies import current_user_or_none, user_permissions
 from .models import AuditLog, ImportBatch, TrackerRecord, User
-from .permissions import IMPORT_EXCEL, VIEW_ALL_RECORDS
-from .routers import admin, audit, auth, dashboard, exports, imports, tracker
+from .permissions import IMPORT_EXCEL, VIEW_ALL_RECORDS, VIEW_JIRA
+from .routers import admin, audit, auth, dashboard, exports, imports, jira, tracker
 from .seed import seed_reference_data
+from .services import jira as jira_service
 from .services.dashboard import backlog_metrics, dashboard_metrics, filter_options
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -48,6 +49,7 @@ app.include_router(dashboard.router)
 app.include_router(admin.router)
 app.include_router(audit.router)
 app.include_router(exports.router)
+app.include_router(jira.router)
 
 
 @app.get("/health", include_in_schema=False)
@@ -171,6 +173,17 @@ def import_page(request: Request, db: Session = Depends(get_db), user: User | No
         "office_script_sync_url": f"{app_url}/api/imports/office-script-sync?token={webhook_token}&mode=replace",
     })
     return templates.TemplateResponse("import.html", context)
+
+
+@app.get("/jira", response_class=HTMLResponse)
+def jira_page(request: Request, db: Session = Depends(get_db), user: User | None = Depends(current_user_or_none)):
+    if not user:
+        return RedirectResponse("/login")
+    if VIEW_JIRA not in user_permissions(user, db):
+        return RedirectResponse("/")
+    context = page_context(request, user, db)
+    context.update({"page": "jira", "jira_configured": jira_service.is_configured(), "jira_project_key": settings.jira_project_key})
+    return templates.TemplateResponse("jira.html", context)
 
 
 @app.get("/admin", response_class=HTMLResponse)

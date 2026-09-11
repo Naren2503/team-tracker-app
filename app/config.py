@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     seed_admin_email: str | None = None
     seed_admin_password: str | None = None
     seed_admin_name: str = "Initial Admin"
+    jira_base_url: str | None = None
+    jira_email: str | None = None
+    jira_api_token: str | None = None
+    jira_project_key: str | None = None
+    jira_auth_mode: str = "basic"  # "basic" (Cloud: email + API token) or "bearer" (Server/Data Center: personal access token)
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

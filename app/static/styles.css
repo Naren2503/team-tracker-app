@@ -135,6 +135,14 @@ th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: l
 th { color: var(--muted); font-size: .8rem; text-transform: uppercase; }
 .comment { max-width: 420px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .pill { background: rgba(23,107,93,.12); color: var(--accent); border-radius: 999px; padding: 4px 8px; font-weight: 800; white-space: nowrap; }
+.muted { color: var(--muted); }
+.kanban-board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.kanban-column { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; min-height: 120px; }
+.kanban-column h3 { margin: 0 0 10px; display: flex; align-items: center; gap: 8px; font-size: .95rem; }
+.kanban-cards { display: grid; gap: 10px; }
+.kanban-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; text-decoration: none; color: var(--ink); display: grid; gap: 4px; box-shadow: var(--shadow); }
+.kanban-card strong { color: var(--accent); }
+.kanban-card small { color: var(--muted); }
 .stack { display: grid; gap: 14px; }
 .preview, .notice, .error { padding: 12px; border-radius: 8px; background: rgba(23,107,93,.1); overflow: auto; }
 .error { color: var(--danger); background: rgba(180,35,24,.1); }

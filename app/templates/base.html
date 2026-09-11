@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ page|default('dashboard')|title }} · Team Tracker</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260907-4">
+  <link rel="stylesheet" href="/static/styles.css?v=20260911-1">
 </head>
 <body data-view="{{ view|default(page|default('dashboard')) }}">
   <div class="shell">
@@ -17,6 +17,7 @@
         <a class="{{ 'active' if page == 'utilization' else '' }}" href="/utilization">Utilization</a>
         <a class="{{ 'active' if page == 'backlog' else '' }}" href="/backlog">Backlog Dashboard</a>
         <a class="{{ 'active' if page == 'tracker' else '' }}" href="/tracker">Tracker</a>
+        {% if 'view_jira_board' in permissions %}<a class="{{ 'active' if page == 'jira' else '' }}" href="/jira">JIRA Board</a>{% endif %}
         {% if 'import_excel_data' in permissions %}<a class="{{ 'active' if page == 'import' else '' }}" href="/import">Import</a>{% endif %}
         {% if 'view_audit_log' in permissions %}<a class="{{ 'active' if page == 'audit' else '' }}" href="/audit">Audit</a>{% endif %}
         {% if 'manage_users' in permissions %}<a class="{{ 'active' if page == 'admin' else '' }}" href="/admin">Admin Console</a>{% endif %}
@@ -37,6 +38,6 @@
       {% block content %}{% endblock %}
     </main>
   </div>
-  <script src="/static/app.js?v=20260911-1"></script>
+  <script src="/static/app.js?v=20260911-2"></script>
 </body>
 </html>
