@@ -25,8 +25,6 @@ Copy-Item .env.example .env
 
 Edit `.env` and set long, separate random values for `SECRET_KEY` and `WEBHOOK_TOKEN`, plus a development `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`.
 
-To enable the JIRA tab (ticket search and kanban board), also set `JIRA_BASE_URL` (e.g. `https://yourcompany.atlassian.net`), `JIRA_EMAIL`, `JIRA_API_TOKEN` (create one at https://id.atlassian.com/manage-profile/security/api-tokens), and optionally `JIRA_PROJECT_KEY` for the default project filter. The tab is hidden until these are configured. For self-hosted JIRA Server/Data Center instances (personal access token auth instead of email + Cloud API token), set `JIRA_AUTH_MODE=bearer` and `JIRA_API_TOKEN` to the PAT; `JIRA_EMAIL` is not required in that mode.
-
 ## Run
 
 ```powershell

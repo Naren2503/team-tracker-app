@@ -377,37 +377,3 @@ async function loadUsers() {
   const response = await fetch('/api/admin/users');
   output.textContent = JSON.stringify(await response.json(), null, 2);
 }
-
-async function refreshJiraBoard() {
-  const board = document.getElementById('jiraBoard');
-  if (!board) return;
-  const query = document.getElementById('jiraSearch')?.value || '';
-  const project = document.getElementById('jiraProject')?.value || '';
-  const params = new URLSearchParams();
-  if (query) params.set('q', query);
-  if (project) params.set('project', project);
-  board.innerHTML = '<p class="muted">Loading tickets…</p>';
-  try {
-    const response = await fetch(`/api/jira/board?${params}`);
-    const data = await response.json();
-    if (!response.ok) {
-      board.innerHTML = '';
-      return showNotice(data.detail || 'Unable to load Jira board', true);
-    }
-    const columns = ['To Do', 'In Progress', 'Done'];
-    board.innerHTML = columns.map((name) => {
-      const issues = data.columns[name] || [];
-      return `<div class="kanban-column"><h3>${escapeHtml(name)} <span class="pill">${issues.length}</span></h3><div class="kanban-cards">${issues.map((issue) => `<a class="kanban-card" href="${escapeHtml(data.base_url || '')}/browse/${escapeHtml(issue.key)}" target="_blank" rel="noopener"><strong>${escapeHtml(issue.key)}</strong><span>${escapeHtml(issue.summary)}</span><small>${escapeHtml(issue.issue_type || '')} · ${escapeHtml(issue.assignee || 'Unassigned')}</small></a>`).join('') || '<p class="muted">No tickets</p>'}</div></div>`;
-    }).join('');
-  } catch (error) {
-    board.innerHTML = '';
-    showNotice(`Jira error: ${error.message}`, true);
-  }
-}
-
-const jiraBoard = document.getElementById('jiraBoard');
-if (jiraBoard) {
-  refreshJiraBoard();
-  document.getElementById('jiraSearch')?.addEventListener('keydown', (event) => { if (event.key === 'Enter') refreshJiraBoard(); });
-}
-
