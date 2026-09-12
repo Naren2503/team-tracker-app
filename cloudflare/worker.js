@@ -11,7 +11,10 @@ export default {
 
     const response = await fetchOrigin(request, url);
     if (response || !isDocumentNavigation(request)) {
-      return response ?? new Response("Service temporarily unavailable", { status: 503 });
+      return response ?? new Response(JSON.stringify({ detail: "Service temporarily unavailable" }), {
+        status: 503,
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      });
     }
 
     return loadingResponse();

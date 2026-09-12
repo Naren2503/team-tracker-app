@@ -33,7 +33,13 @@
       table.hidden = true;
       try {
         const response = await fetch('/api/jira/issues');
-        const payload = await response.json();
+        const responseText = await response.text();
+        let payload;
+        try {
+          payload = JSON.parse(responseText);
+        } catch {
+          throw new Error(response.ok ? 'Jira returned an invalid response.' : `${responseText || 'Jira service unavailable.'} (HTTP ${response.status})`);
+        }
         if (!response.ok) throw new Error(payload.detail || 'Jira request failed');
         table.querySelector('tbody').innerHTML = payload.map((issue) => `<tr><td><strong>${escapeJiraHtml(issue.key)}</strong></td><td>${escapeJiraHtml(issue.summary || '')}</td><td>${escapeJiraHtml(issue.status || '-')}</td><td>${escapeJiraHtml(issue.priority || '-')}</td><td>${escapeJiraHtml(issue.assignee || 'Unassigned')}</td><td>${escapeJiraHtml(issue.updated || '')}</td></tr>`).join('');
         table.hidden = false;
