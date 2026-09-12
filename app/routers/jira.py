@@ -37,12 +37,18 @@ async def issues(user: User = Depends(get_current_user)):
     else:
         auth = (settings.jira_email, settings.jira_api_token)
     try:
-        async with httpx.AsyncClient(timeout=20.0) as client:
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
             response = await client.get(url, params={"jql": jql, "maxResults": 100, "fields": "summary,status,priority,assignee,updated"}, headers=headers, auth=auth)
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=502, detail=f"Jira request failed: {exc}") from exc
     if response.status_code != 200:
+        location = response.headers.get("location")
         detail = response.text[:300].replace("\n", " ").strip()
-        raise HTTPException(status_code=502, detail=f"Jira returned HTTP {response.status_code}: {detail or 'no response body'}")
-    data = response.json()
+        redirect_hint = f" Redirect target: {location}." if location else ""
+        raise HTTPException(status_code=502, detail=f"Jira returned HTTP {response.status_code}: {detail or 'no response body'}.{redirect_hint}")
+    try:
+        data = response.json()
+    except ValueError as exc:
+        content_type = response.headers.get("content-type", "unknown")
+        raise HTTPException(status_code=502, detail=f"Jira returned a non-JSON response ({content_type}); check the Jira URL, authentication mode, and token.") from exc
     return [{"key": issue["key"], "summary": issue.get("fields", {}).get("summary"), "status": (issue.get("fields", {}).get("status") or {}).get("name"), "priority": (issue.get("fields", {}).get("priority") or {}).get("name"), "assignee": (issue.get("fields", {}).get("assignee") or {}).get("displayName"), "updated": issue.get("fields", {}).get("updated")} for issue in data.get("issues", [])]
