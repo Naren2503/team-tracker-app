@@ -14,7 +14,7 @@ from .config import get_settings
 from .dependencies import current_user_or_none, user_permissions
 from .models import AuditLog, ImportBatch, TrackerRecord, User
 from .permissions import IMPORT_EXCEL, VIEW_ALL_RECORDS
-from .routers import admin, audit, auth, dashboard, exports, imports, tracker
+from .routers import admin, audit, auth, dashboard, exports, imports, jira, tracker
 from .seed import seed_reference_data
 from .services.dashboard import backlog_metrics, dashboard_metrics, filter_options
 
@@ -44,6 +44,7 @@ def format_ist(value: datetime | None) -> str:
 app.include_router(auth.router)
 app.include_router(tracker.router)
 app.include_router(imports.router)
+app.include_router(jira.router)
 app.include_router(dashboard.router)
 app.include_router(admin.router)
 app.include_router(audit.router)
@@ -171,6 +172,13 @@ def import_page(request: Request, db: Session = Depends(get_db), user: User | No
         "office_script_sync_url": f"{app_url}/api/imports/office-script-sync?token={webhook_token}&mode=replace",
     })
     return templates.TemplateResponse("import.html", context)
+
+
+@app.get("/jira", response_class=HTMLResponse)
+def jira_page(request: Request, db: Session = Depends(get_db), user: User | None = Depends(current_user_or_none)):
+    if not user:
+        return RedirectResponse("/login")
+    return jira.render_page(request, db, user)
 
 
 @app.get("/admin", response_class=HTMLResponse)

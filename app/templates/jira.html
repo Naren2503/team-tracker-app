@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Jira{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="topbar" style="margin-bottom: 16px;">
+    <div>
+      <p class="eyebrow">Delivery work</p>
+      <h2>Jira Issues</h2>
+    </div>
+    {% if configured %}<button type="button" id="jiraRefreshButton" onclick="loadJiraIssues()">Refresh</button>{% endif %}
+  </div>
+  {% if not configured %}
+  <p style="color: var(--muted); margin: 0;">Jira is not configured yet. Add the four Jira settings from the setup guide, then refresh this page.</p>
+  {% else %}
+  <p id="jiraMessage" style="color: var(--muted);">Loading Jira issues...</p>
+  <div class="table-wrap">
+    <table id="jiraTable" hidden>
+      <thead><tr><th>Key</th><th>Summary</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Updated</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <script>
+    function escapeJiraHtml(value) {
+      return String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+    }
+
+    async function loadJiraIssues() {
+      const message = document.getElementById('jiraMessage');
+      const table = document.getElementById('jiraTable');
+      const button = document.getElementById('jiraRefreshButton');
+      button.disabled = true;
+      message.textContent = 'Loading Jira issues...';
+      table.hidden = true;
+      try {
+        const response = await fetch('/api/jira/issues');
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.detail || 'Jira request failed');
+        table.querySelector('tbody').innerHTML = payload.map((issue) => `<tr><td><strong>${escapeJiraHtml(issue.key)}</strong></td><td>${escapeJiraHtml(issue.summary || '')}</td><td>${escapeJiraHtml(issue.status || '-')}</td><td>${escapeJiraHtml(issue.priority || '-')}</td><td>${escapeJiraHtml(issue.assignee || 'Unassigned')}</td><td>${escapeJiraHtml(issue.updated || '')}</td></tr>`).join('');
+        table.hidden = false;
+        message.textContent = payload.length ? `${payload.length} Jira issues loaded.` : 'No Jira issues found.';
+      } catch (error) {
+        message.textContent = error.message;
+      } finally {
+        button.disabled = false;
+      }
+    }
+    loadJiraIssues();
+  </script>
+  {% endif %}
+</section>
+{% endblock %}
