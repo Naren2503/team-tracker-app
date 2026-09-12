@@ -42,6 +42,7 @@ async def issues(user: User = Depends(get_current_user)):
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=502, detail=f"Jira request failed: {exc}") from exc
     if response.status_code != 200:
-        raise HTTPException(status_code=502, detail=f"Jira returned HTTP {response.status_code}")
+        detail = response.text[:300].replace("\n", " ").strip()
+        raise HTTPException(status_code=502, detail=f"Jira returned HTTP {response.status_code}: {detail or 'no response body'}")
     data = response.json()
     return [{"key": issue["key"], "summary": issue.get("fields", {}).get("summary"), "status": (issue.get("fields", {}).get("status") or {}).get("name"), "priority": (issue.get("fields", {}).get("priority") or {}).get("name"), "assignee": (issue.get("fields", {}).get("assignee") or {}).get("displayName"), "updated": issue.get("fields", {}).get("updated")} for issue in data.get("issues", [])]

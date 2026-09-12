@@ -10,8 +10,11 @@ export default {
     }
 
     const response = await fetchOrigin(request, url);
-    if (response || !isDocumentNavigation(request)) {
-      return response ?? new Response(JSON.stringify({ detail: "Service temporarily unavailable" }), {
+    if (response && (![502, 503, 504].includes(response.status) || !isDocumentNavigation(request))) {
+      return response;
+    }
+    if (!isDocumentNavigation(request)) {
+      return new Response(JSON.stringify({ detail: "Service temporarily unavailable" }), {
         status: 503,
         headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
       });
@@ -24,8 +27,7 @@ export default {
 async function fetchOrigin(request, url) {
   const originUrl = new URL(`${url.pathname}${url.search}`, ORIGIN);
   try {
-    const response = await fetch(new Request(originUrl, request));
-    return [502, 503, 504].includes(response.status) ? null : response;
+    return await fetch(new Request(originUrl, request));
   } catch {
     return null;
   }
