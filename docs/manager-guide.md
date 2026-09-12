@@ -216,11 +216,9 @@ Key rules:
 | [excel_office_sync.ts](../scripts/excel_office_sync.ts) | Manual Run button in Excel Online | Sends the selected workbook sheet data directly to the protected app endpoint using `fetch`. Its endpoint must be configured in Excel only, never committed. |
 | [excel_power_automate_sync.ts](../scripts/excel_power_automate_sync.ts) | Power Automate Run script action | Returns selected sheet data to a flow. It cannot use `fetch`; a separate outbound connector action would be required to reach Team Tracker. |
 
-### 7.5 GitHub Actions SharePoint sync: optional
+### 7.5 Render keep-alive
 
-[sharepoint-sync.yml](../.github/workflows/sharepoint-sync.yml) is an optional automated route for organizations able to supply Microsoft Entra application credentials. It downloads the SharePoint workbook through Microsoft Graph and sends it to the protected webhook. It requires the documented GitHub secrets and Microsoft Graph `Sites.Read.All` application permission with tenant admin consent.
-
-[keep-alive.yml](../.github/workflows/keep-alive.yml) requests the health endpoint every ten minutes to reduce free-tier idle cold starts.
+[keep-alive.yml](../.github/workflows/keep-alive.yml) requests the health endpoint every ten minutes to reduce free-tier idle cold starts. It does not read or synchronize workbook data.
 
 ## 8. Reporting and CSV Exports
 
@@ -362,7 +360,6 @@ $errors
 3. Move large imports to a background job queue with job-status polling, so browser requests return immediately.
 4. Add retention cleanup for old import-row detail, audit data, and soft-deleted records based on an agreed policy.
 5. Replace local password authentication with organizational Microsoft Entra ID when tenant access becomes available.
-6. Obtain an Entra application identity only if the organization wants direct Microsoft Graph SharePoint sync from GitHub or the backend.
 
 ## 14. Source Map
 
@@ -388,7 +385,6 @@ cloudflare/
   worker.js                Edge proxy and branded cold-start page
 .github/workflows/
   keep-alive.yml           Render health ping
-  sharepoint-sync.yml      Optional Graph-based SharePoint sync
 launch/
   index.html               Static startup page
 render.yaml                Render service configuration
