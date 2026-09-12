@@ -132,6 +132,24 @@ def test_monthly_page_shows_csv_export_for_authorized_user(client):
     assert 'onclick="downloadMonthlyCsv()"' in response.text
 
 
+def test_jira_page_accepts_bearer_configuration(client, monkeypatch):
+    from types import SimpleNamespace
+    from app.routers import jira
+
+    login(client, "admin@test.local")
+    monkeypatch.setattr(
+        jira,
+        "get_settings",
+        lambda: SimpleNamespace(jira_base_url="https://jira.example", jira_email=None, jira_api_token="token", jira_auth_mode="bearer", jira_project_key="DQ"),
+    )
+
+    response = client.get("/jira")
+
+    assert response.status_code == 200
+    assert "Jira is not configured yet" not in response.text
+    assert "Loading Jira issues" in response.text
+
+
 def test_import_times_are_formatted_in_ist():
     from datetime import datetime, timezone
     from app.main import format_ist

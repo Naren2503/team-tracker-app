@@ -14,7 +14,7 @@ templates = Jinja2Templates(directory=Path(__file__).resolve().parents[1] / "tem
 
 def render_page(request: Request, db: Session, user: User) -> HTMLResponse:
     settings = get_settings()
-    configured = bool(settings.jira_base_url and settings.jira_email and settings.jira_api_token)
+    configured = bool(settings.jira_base_url and settings.jira_api_token and (settings.jira_auth_mode.casefold() == "bearer" or settings.jira_email))
     return templates.TemplateResponse(
         "jira.html",
         {"request": request, "user": user, "permissions": user_permissions(user, db), "page": "jira", "configured": configured, "project_key": settings.jira_project_key or ""},
@@ -24,13 +24,21 @@ def render_page(request: Request, db: Session, user: User) -> HTMLResponse:
 @router.get("/issues")
 async def issues(user: User = Depends(get_current_user)):
     settings = get_settings()
-    if not (settings.jira_base_url and settings.jira_email and settings.jira_api_token):
+    auth_mode = settings.jira_auth_mode.casefold()
+    if not (settings.jira_base_url and settings.jira_api_token and (auth_mode == "bearer" or settings.jira_email)):
         raise HTTPException(status_code=503, detail="Jira is not configured")
     jql = f"project = {settings.jira_project_key} ORDER BY updated DESC" if settings.jira_project_key else "ORDER BY updated DESC"
-    url = f"{settings.jira_base_url.rstrip('/')}/rest/api/3/search"
+    api_version = "2" if auth_mode == "bearer" else "3"
+    url = f"{settings.jira_base_url.rstrip('/')}/rest/api/{api_version}/search"
+    headers = {"Accept": "application/json"}
+    auth = None
+    if auth_mode == "bearer":
+        headers["Authorization"] = f"Bearer {settings.jira_api_token}"
+    else:
+        auth = (settings.jira_email, settings.jira_api_token)
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
-            response = await client.get(url, params={"jql": jql, "maxResults": 100, "fields": "summary,status,priority,assignee,updated"}, auth=(settings.jira_email, settings.jira_api_token))
+            response = await client.get(url, params={"jql": jql, "maxResults": 100, "fields": "summary,status,priority,assignee,updated"}, headers=headers, auth=auth)
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=502, detail=f"Jira request failed: {exc}") from exc
     if response.status_code != 200:

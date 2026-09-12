@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     jira_base_url: str | None = None
     jira_email: str | None = None
     jira_api_token: str | None = None
+    jira_auth_mode: str = "basic"
     jira_project_key: str | None = None
     cors_origins: str = "*"
     seed_admin_email: str | None = None
