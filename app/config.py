@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     seed_admin_email: str | None = None
     seed_admin_password: str | None = None
     seed_admin_name: str = "Initial Admin"
+    confluence_base_url: str | None = None
+    confluence_email: str | None = None
+    confluence_api_token: str | None = None
+    confluence_page_id: str | None = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

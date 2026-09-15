@@ -16,6 +16,7 @@ from .models import AuditLog, ImportBatch, TrackerRecord, User
 from .permissions import IMPORT_EXCEL, VIEW_ALL_RECORDS
 from .routers import admin, audit, auth, dashboard, exports, imports, tracker
 from .seed import seed_reference_data
+from .services.confluence import fetch_confluence_page
 from .services.dashboard import backlog_metrics, dashboard_metrics, filter_options
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -110,6 +111,15 @@ def weekly_page(request: Request, db: Session = Depends(get_db), user: User | No
 @app.get("/utilization", response_class=HTMLResponse)
 def utilization_page(request: Request, db: Session = Depends(get_db), user: User | None = Depends(current_user_or_none)):
     return report_page("utilization", request, db, user)
+
+
+@app.get("/confluence", response_class=HTMLResponse)
+def confluence_page(request: Request, db: Session = Depends(get_db), user: User | None = Depends(current_user_or_none)):
+    if not user:
+        return RedirectResponse("/login")
+    context = page_context(request, user, db)
+    context.update({"page": "confluence", "view": "confluence", "confluence": fetch_confluence_page(settings)})
+    return templates.TemplateResponse("confluence.html", context)
 
 
 @app.get("/backlog", response_class=HTMLResponse)

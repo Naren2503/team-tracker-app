@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Confluence{% endblock %}
+{% block content %}
+{% if not confluence.configured %}
+<section class="panel">
+  <h2>Confluence not configured</h2>
+  <p>Set <code>CONFLUENCE_BASE_URL</code>, <code>CONFLUENCE_EMAIL</code>, <code>CONFLUENCE_API_TOKEN</code>, and <code>CONFLUENCE_PAGE_ID</code> to pull a page in via the Confluence REST API.</p>
+</section>
+{% elif confluence.error %}
+<section class="panel">
+  <h2>Could not load Confluence page</h2>
+  <p>{{ confluence.error }}</p>
+  {% if confluence.url %}<p><a href="{{ confluence.url }}" target="_blank" rel="noopener">Open in Confluence</a></p>{% endif %}
+</section>
+{% else %}
+<section class="panel wide-panel">
+  <div class="topbar" style="justify-content: space-between;">
+    <h2>{{ confluence.title }}</h2>
+    <a href="{{ confluence.url }}" target="_blank" rel="noopener">Open in Confluence</a>
+  </div>
+  <div class="confluence-content">{{ confluence.html|safe }}</div>
+</section>
+{% endif %}
+{% endblock %}
+
