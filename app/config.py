@@ -11,11 +11,6 @@ class Settings(BaseSettings):
     session_minutes: int = 480
     secure_cookies: bool = False
     webhook_token: str | None = None
-    jira_base_url: str | None = None
-    jira_email: str | None = None
-    jira_api_token: str | None = None
-    jira_auth_mode: str = "basic"
-    jira_project_key: str | None = None
     cors_origins: str = "*"
     seed_admin_email: str | None = None
     seed_admin_password: str | None = None

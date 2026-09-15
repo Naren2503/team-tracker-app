@@ -33,30 +33,6 @@ uvicorn app.main:app --reload
 
 Open `http://127.0.0.1:8000`.
 
-## Jira Tab
-
-The app includes a simple read-only Jira tab. Configure it with Jira Cloud API credentials in `.env` or the Render environment:
-
-```text
-JIRA_BASE_URL=https://your-domain.atlassian.net
-JIRA_EMAIL=your-email@example.com
-JIRA_API_TOKEN=your-jira-api-token
-JIRA_AUTH_MODE=basic
-JIRA_PROJECT_KEY=ABC
-```
-
-Create the API token in Jira under **Profile -> Personal settings -> Security -> API tokens**. The token stays server-side; the browser only receives issue data. `JIRA_PROJECT_KEY` is optional. When it is blank, the tab lists the latest issues visible to the configured Jira account. Restart the app after changing these settings, then open the `Jira` tab.
-
-For Jira Server/Data Center or an internal Jira endpoint using a bearer token, use:
-
-```text
-JIRA_BASE_URL=https://your-jira-host
-JIRA_AUTH_MODE=bearer
-JIRA_API_TOKEN=your-bearer-token
-JIRA_EMAIL=
-JIRA_PROJECT_KEY=ABC
-```
-
 ## Render Cold Start Page
 
 The free Render web service may take time to wake after inactivity. Open the static DQ Team Tracker launch page first instead of bookmarking the application URL directly:
