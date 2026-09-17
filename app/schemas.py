@@ -32,9 +32,11 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    email: str | None = None
     display_name: str | None = None
     role_id: int | None = None
     active: bool | None = None
+    password: str | None = Field(default=None, min_length=12)
 
 
 class LoginIn(BaseModel):

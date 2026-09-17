@@ -362,6 +362,7 @@ if (importForm) {
 
 const userForm = document.getElementById('userForm');
 if (userForm) {
+  initializeAdminConsole();
   userForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const payload = Object.fromEntries(new FormData(userForm));
@@ -369,11 +370,55 @@ if (userForm) {
     const response = await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const result = await response.json();
     showNotice(response.ok ? `User created: ${result.email}` : result.detail || 'User creation failed', !response.ok);
+    if (response.ok) { userForm.reset(); loadRoles(); loadUsers(); }
   });
 }
 
+async function loadRoles() {
+  const roleSelect = document.querySelector('#userForm select[name="role_id"]');
+  if (!roleSelect) return;
+  const response = await fetch('/api/admin/roles');
+  if (!response.ok) return;
+  window.adminRoles = await response.json();
+  roleSelect.innerHTML = window.adminRoles.map((role) => `<option value="${role.id}">${escapeHtml(role.name)}</option>`).join('');
+}
+
+async function initializeAdminConsole() {
+  await loadRoles();
+  await loadUsers();
+}
+
 async function loadUsers() {
-  const output = document.getElementById('adminOutput');
+  const table = document.querySelector('#adminUsersTable tbody');
+  if (!table) return;
   const response = await fetch('/api/admin/users');
-  output.textContent = JSON.stringify(await response.json(), null, 2);
+  if (!response.ok) return showNotice((await response.json()).detail || 'Unable to load users', true);
+  const users = await response.json();
+  table.innerHTML = users.map((user) => `<tr><td>${user.id}</td><td><input data-user="${user.id}" data-field="display_name" value="${escapeHtml(user.display_name)}"></td><td><input data-user="${user.id}" data-field="email" type="email" value="${escapeHtml(user.email)}"></td><td><select data-user="${user.id}" data-field="role_id">${window.adminRoles.map((role) => `<option value="${role.id}" ${role.id === user.role_id ? 'selected' : ''}>${escapeHtml(role.name)}</option>`).join('')}</select></td><td><input data-user="${user.id}" data-field="active" type="checkbox" ${user.active ? 'checked' : ''}></td><td><button type="button" onclick="updateAdminUser(${user.id})">Save</button> <button type="button" class="ghost" onclick="resetAdminPassword(${user.id})">Reset password</button> <button type="button" class="ghost" onclick="deactivateAdminUser(${user.id})">Deactivate</button></td></tr>`).join('');
+}
+
+window.adminRoles = [];
+async function updateAdminUser(userId) {
+  const fields = [...document.querySelectorAll(`[data-user="${userId}"]`)].reduce((values, field) => { values[field.dataset.field] = field.type === 'checkbox' ? field.checked : field.value; return values; }, {});
+  fields.role_id = Number(fields.role_id);
+  const response = await fetch(`/api/admin/users/${userId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fields) });
+  const result = await response.json();
+  showNotice(response.ok ? 'User updated' : result.detail || 'User update failed', !response.ok);
+  if (response.ok) loadUsers();
+}
+
+async function resetAdminPassword(userId) {
+  const password = window.prompt('Enter a new password (minimum 12 characters):');
+  if (!password) return;
+  const response = await fetch(`/api/admin/users/${userId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) });
+  const result = await response.json();
+  showNotice(response.ok ? 'Password reset successfully' : result.detail || 'Password reset failed', !response.ok);
+}
+
+async function deactivateAdminUser(userId) {
+  if (!window.confirm('Deactivate this user? They will no longer be able to sign in.')) return;
+  const response = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
+  const result = await response.json();
+  showNotice(response.ok ? 'User deactivated' : result.detail || 'User deactivation failed', !response.ok);
+  if (response.ok) loadUsers();
 }

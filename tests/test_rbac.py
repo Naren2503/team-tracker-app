@@ -178,6 +178,20 @@ def test_admin_user_validation_returns_controlled_errors(client):
     assert self_deactivate.status_code == 400
 
 
+def test_admin_can_reset_password_and_deactivate_another_user(client):
+    login(client, "admin@test.local")
+    users = client.get("/api/admin/users").json()
+    viewer_id = next(user["id"] for user in users if user["email"] == "viewer@test.local")
+
+    reset = client.put(f"/api/admin/users/{viewer_id}", json={"password": "NewPassword123!"})
+    deactivate = client.delete(f"/api/admin/users/{viewer_id}")
+
+    assert reset.status_code == 200
+    assert deactivate.status_code == 200
+    viewer = next(user for user in client.get("/api/admin/users").json() if user["id"] == viewer_id)
+    assert viewer["active"] is False
+
+
 def test_login_cookie_can_be_marked_secure(client, monkeypatch):
     from types import SimpleNamespace
     from app.routers import auth

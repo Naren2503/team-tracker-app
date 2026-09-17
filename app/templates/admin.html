@@ -2,7 +2,8 @@
 {% block title %}Admin Console{% endblock %}
 {% block content %}
 <div class="grid-two">
-<section class="panel"><h2>Create User</h2><form id="userForm" class="stack"><label>Email<input name="email" type="email" required></label><label>Name<input name="display_name" required></label><label>Password<input name="password" type="password" minlength="12" required></label><label>Role ID<input name="role_id" type="number" value="2" required></label><button>Create user</button></form></section>
-<section class="panel"><h2>Roles</h2><p>Default roles are Admin, Editor, and Viewer. Role changes are enforced through backend permissions; users cannot change their own role through the admin API.</p><button onclick="loadUsers()">Load users</button><pre id="adminOutput" class="preview"></pre></section>
+<section class="panel"><h2>Create User</h2><form id="userForm" class="stack"><label>Email<input name="email" type="email" required></label><label>Name<input name="display_name" required></label><label>Password<input name="password" type="password" minlength="12" required></label><label>Role<select name="role_id" required></select></label><button>Create user</button></form></section>
+<section class="panel"><h2>Access Control</h2><p>Admins can change names, email addresses, roles, active access, and reset passwords. Passwords are never visible because only secure password hashes are stored.</p><button type="button" onclick="loadUsers()">Refresh users</button><p id="adminMessage" class="notice" hidden></p></section>
 </div>
+<section class="panel"><h2>Users</h2><div class="table-wrap"><table id="adminUsersTable"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Active</th><th>Actions</th></tr></thead><tbody></tbody></table></div></section>
 {% endblock %}

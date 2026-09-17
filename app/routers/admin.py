@@ -48,11 +48,36 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if payload.email is not None:
+        email = payload.email.strip().lower()
+        duplicate = db.execute(select(User).where(User.email == email, User.id != user_id)).scalar_one_or_none()
+        if duplicate:
+            raise HTTPException(status_code=409, detail="Email already exists")
+        payload.email = email
     if payload.role_id is not None and not db.get(Role, payload.role_id):
         raise HTTPException(status_code=400, detail="Role does not exist")
-    old = {"display_name": user.display_name, "role_id": user.role_id, "active": user.active}
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    old = {"email": user.email, "display_name": user.display_name, "role_id": user.role_id, "active": user.active}
+    values = payload.model_dump(exclude_unset=True)
+    if values.get("password") is not None:
+        user.password_hash = hash_password(values.pop("password"))
+    for field, value in values.items():
         setattr(user, field, value)
-    audit(db, actor, "update_user", "user", user.id, old, payload.model_dump(exclude_unset=True))
+    audit_payload = {key: value for key, value in payload.model_dump(exclude_unset=True).items() if key != "password"}
+    if payload.password is not None:
+        audit_payload["password_reset"] = True
+    audit(db, actor, "update_user", "user", user.id, old, audit_payload)
+    db.commit()
+    return {"ok": True}
+
+
+@router.delete("/users/{user_id}")
+def deactivate_user(user_id: int, db: Session = Depends(get_db), actor: User = Depends(require_permission(MANAGE_USERS))):
+    if user_id == actor.id:
+        raise HTTPException(status_code=400, detail="You cannot deactivate your own account")
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.active = False
+    audit(db, actor, "deactivate_user", "user", user.id, {"active": True}, {"active": False})
     db.commit()
     return {"ok": True}
