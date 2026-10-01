@@ -10,4 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping health endpoint
-        run: curl -fsS "https://naren2503-team-tracker.onrender.com/health"
+        # Render free tier can take 30-60s to wake and may return 502/503 while cold starting.
+        # Retry transient errors so a single cold-start blip does not fail the workflow.
+        run: |
+          curl -fsS \
+            --retry 6 \
+            --retry-delay 15 \
+            --retry-all-errors \
+            --retry-connrefused \
+            --connect-timeout 20 \
+            --max-time 90 \
+            "https://naren2503-team-tracker.onrender.com/health"
