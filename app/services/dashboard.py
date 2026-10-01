@@ -342,16 +342,17 @@ def dashboard_metrics(db: Session, start: date | None = None, end: date | None =
                 for log in selected_ticket_logs
                 if log.tester_name_raw and log.tester_name_raw.strip()
             }
-            tester_names = sorted(testers_by_name.values(), key=str.casefold)
+            # Local name must not shadow the outer ``tester_names`` set used for total_testers.
+            ticket_tester_names = sorted(testers_by_name.values(), key=str.casefold)
             unmatched_ticket_details.append({
                 "ticket_id": (first_log.ticket_id_raw or "GENERAL").strip(),
                 "status": "Not available",
-                "tester": ", ".join(tester_names) if tester_names else "Unassigned",
+                "tester": ", ".join(ticket_tester_names) if ticket_tester_names else "Unassigned",
                 "logged_hours": round(sum(log.work_log_hours or 0 for log in selected_ticket_logs), 2),
                 "start_date": first_log.work_date.isoformat() if first_log.work_date else None,
                 "end_date": None,
                 "date_warning": None,
-                "comments": "" if len(tester_names) > 1 else (latest_comment_log.daily_comments if latest_comment_log else ""),
+                "comments": "" if len(ticket_tester_names) > 1 else (latest_comment_log.daily_comments if latest_comment_log else ""),
                 "age_days": None,
             })
 

@@ -358,6 +358,35 @@ def test_all_filter_aggregates_testers_for_matched_shared_task():
     assert ticket["comments"] == ""
 
 
+def test_utilization_total_testers_counts_all_ft_testers_with_unmatched_ticket():
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+
+    with Session(engine) as db:
+        db.add_all([
+            WorkLog(ticket_id_raw="DQ-A", workstream="FT", tester_name_raw="Kousalya", work_date=date(2026, 9, 2), work_log_hours=7.5, source_sheet="Daily Report - FT"),
+            WorkLog(ticket_id_raw="DQ-A", workstream="FT", tester_name_raw="Narendar", work_date=date(2026, 9, 3), work_log_hours=7.5, source_sheet="Daily Report - FT"),
+            # Unmatched ticket (no TrackerRecord) with a single tester - previously shadowed total_testers to 1.
+            WorkLog(ticket_id_raw="GENERAL", workstream="FT", tester_name_raw="Shweta", work_date=date(2026, 9, 4), work_log_hours=7.5, source_sheet="Daily Report - FT"),
+        ])
+        db.commit()
+
+        metrics = dashboard_metrics(
+            db,
+            start=date(2026, 9, 1),
+            end=date(2026, 9, 30),
+            report_view="utilization",
+            ticket_category="all",
+        )
+
+    assert metrics["total_testers"] == 3
+    assert set(metrics["utilization"].keys()) == {"Kousalya", "Narendar", "Shweta"}
+
+
 def test_lifecycle_trend_includes_created_and_resolved_ticket_names_for_hover_tooltips():
     engine = create_engine("sqlite:///:memory:", poolclass=StaticPool)
     Base.metadata.create_all(bind=engine)
