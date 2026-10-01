@@ -186,8 +186,8 @@ async function refreshDashboard() {
     const cardValues = view === 'monthly' ? [
       ['Total Tickets', data.total_records],
       ['Total Hours', data.total_hours],
-      ['Test Cases', data.passed_tc + data.failed_tc],
-      ['Test Steps', data.passed_steps + data.failed_steps],
+      ['Test Cases <em title="Passed + Failed">(P+F)</em>', data.passed_tc + data.failed_tc, `${data.passed_tc} passed \u00b7 ${data.failed_tc} failed`],
+      ['Test Steps <em title="Passed + Failed">(P+F)</em>', data.passed_steps + data.failed_steps, `${data.passed_steps} passed \u00b7 ${data.failed_steps} failed`],
     ] : [
       ['Total Records', data.total_records],
       ['Completed', data.status_counts.completed],
@@ -197,7 +197,7 @@ async function refreshDashboard() {
       ['Passed TC', data.passed_tc],
       ['Avg Ticket Age', `${data.average_age_days}d`],
     ];
-    cards.innerHTML = cardValues.map(([label, value]) => `<article><span>${label}</span><strong>${value}</strong></article>`).join('');
+    cards.innerHTML = cardValues.map(([label, value, hint]) => `<article><span>${label}</span><strong>${value}</strong>${hint ? `<small class="card-breakdown">${hint}</small>` : ''}</article>`).join('');
   }
   const trendTitle = document.getElementById('trendTitle');
   if (trendTitle) trendTitle.textContent = `${granularity === 'week' ? 'Weekly' : 'Monthly'} Effort Trend`;
@@ -217,7 +217,11 @@ async function refreshDashboard() {
   const utilizationCards = document.getElementById('utilizationCards');
   if (utilizationCards) utilizationCards.innerHTML = [['Total Testers', data.total_testers], ['Total Hours', data.total_hours], ['Average Utilization', `${data.average_utilization}%`]].map(([label, value]) => `<article><span>${label}</span><strong>${value}</strong></article>`).join('');
   const weeklyCards = document.getElementById('weeklyCards');
-  if (weeklyCards) weeklyCards.innerHTML = [['Total Tickets', data.total_records], ['Test Cases', data.passed_tc + data.failed_tc], ['Test Steps', data.passed_steps + data.failed_steps]].map(([label, value]) => `<article><span>${label}</span><strong>${value}</strong></article>`).join('');
+  if (weeklyCards) weeklyCards.innerHTML = [
+    ['Total Tickets', data.total_records, null],
+    ['Test Cases <em title="Passed + Failed">(P+F)</em>', data.passed_tc + data.failed_tc, `${data.passed_tc} passed \u00b7 ${data.failed_tc} failed`],
+    ['Test Steps <em title="Passed + Failed">(P+F)</em>', data.passed_steps + data.failed_steps, `${data.passed_steps} passed \u00b7 ${data.failed_steps} failed`],
+  ].map(([label, value, hint]) => `<article><span>${label}</span><strong>${value}</strong>${hint ? `<small class="card-breakdown">${hint}</small>` : ''}</article>`).join('');
   const utilizationChart = document.getElementById('utilizationChart');
   if (utilizationChart) utilizationChart.innerHTML = Object.entries(data.utilization).map(([label, value]) => `<button><span>${escapeHtml(label)}</span><i style="width: ${Math.min(value, 100)}%"></i><b>${value}%</b></button>`).join('');
   const ageList = document.querySelector('.age-list');

@@ -45,7 +45,9 @@ label { display: grid; gap: 6px; color: var(--muted); font-weight: 700; }
 .cards article { padding: 18px; }
 .cards { margin-top: 4px; }
 .cards span { color: var(--muted); display: block; font-size: .86rem; }
+.cards span em { font-style: normal; font-size: .72rem; opacity: .75; margin-left: 2px; }
 .cards strong { font-size: 2rem; display: block; margin-top: 8px; }
+.cards .card-breakdown { color: var(--muted); display: block; font-size: .78rem; margin-top: 4px; }
 .grid-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
 .monthly-report { display: flex; flex-direction: column; gap: 18px; }
 .monthly-report > .monthly-summary { order: 1; width: 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; }
