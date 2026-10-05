@@ -59,8 +59,9 @@ def seed_reference_data(db: Session) -> None:
             logger.info("Seed admin %r password/role/active reset", seed_email)
         else:
             logger.info("Seed admin %r already exists; set SEED_ADMIN_RESET=true to re-apply the password", seed_email)
-        known = [user.email for user in db.execute(select(User.email).order_by(User.email)).scalars().all()]
-        logger.info("Existing user emails: %s", known)
+        db.flush()
+        known = db.execute(select(User.email).order_by(User.email)).scalars().all()
+        logger.info("Existing user emails: %s", list(known))
     else:
         logger.warning("SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD not set; no admin seeded")
     db.commit()
