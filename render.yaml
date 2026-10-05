@@ -24,3 +24,6 @@ services:
         sync: false
       - key: SEED_ADMIN_PASSWORD
         sync: false
+      # Set to "true" in the dashboard + redeploy to re-apply SEED_ADMIN_PASSWORD, then set back to "false".
+      - key: SEED_ADMIN_RESET
+        sync: false
