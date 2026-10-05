@@ -11,13 +11,11 @@
     <p class="eyebrow">Secure team access</p>
     <h1>Team Tracker</h1>
     <form method="post" action="/login" class="stack">
-      {% if notice %}<div class="notice">{{ notice }}</div>{% endif %}
       {% if error %}<div class="error">{{ error }}</div>{% endif %}
       <label>Email<input name="email" type="email" autocomplete="email" required></label>
       <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
       <button type="submit">Sign in</button>
     </form>
-    <p class="auth-links"><a href="/forgot-password">Forgot password?</a></p>
   </main>
 </body>
 </html>

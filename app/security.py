@@ -1,5 +1,3 @@
-import hashlib
-import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
 import jwt
@@ -30,11 +28,3 @@ def create_access_token(subject: str, extra: dict[str, Any] | None = None) -> st
 def decode_access_token(token: str) -> dict[str, Any]:
     settings = get_settings()
     return jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
-
-
-def generate_reset_token() -> str:
-    return secrets.token_urlsafe(32)
-
-
-def hash_reset_token(token: str) -> str:
-    return hashlib.sha256(token.encode()).hexdigest()

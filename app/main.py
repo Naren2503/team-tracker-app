@@ -71,21 +71,7 @@ def page_context(request: Request, user: User | None, db: Session) -> dict:
 def login_page(request: Request, user: User | None = Depends(current_user_or_none)):
     if user:
         return RedirectResponse("/")
-    return templates.TemplateResponse("login.html", {"request": request, "error": request.query_params.get("error"), "notice": request.query_params.get("notice")})
-
-
-@app.get("/forgot-password", response_class=HTMLResponse)
-def forgot_password_page(request: Request, user: User | None = Depends(current_user_or_none)):
-    if user:
-        return RedirectResponse("/")
-    return templates.TemplateResponse("forgot_password.html", {"request": request, "sent": request.query_params.get("sent"), "error": request.query_params.get("error")})
-
-
-@app.get("/reset-password", response_class=HTMLResponse)
-def reset_password_page(request: Request, user: User | None = Depends(current_user_or_none)):
-    if user:
-        return RedirectResponse("/")
-    return templates.TemplateResponse("reset_password.html", {"request": request, "token": request.query_params.get("token", ""), "error": request.query_params.get("error")})
+    return templates.TemplateResponse("login.html", {"request": request, "error": request.query_params.get("error")})
 
 
 @app.get("/", response_class=HTMLResponse)
