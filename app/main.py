@@ -1,5 +1,6 @@
 from calendar import monthrange
 from datetime import UTC, date, datetime, timedelta, timezone
+import logging
 from pathlib import Path
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,6 +21,8 @@ from .services.dashboard import backlog_metrics, dashboard_metrics, filter_optio
 
 BASE_DIR = Path(__file__).resolve().parent
 settings = get_settings()
+# uvicorn only configures its own loggers, so application INFO logs need a root handler.
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 app = FastAPI(title="Team Tracker", version="0.1.0")
 
 app.add_middleware(
