@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     seed_admin_email: str | None = None
     seed_admin_password: str | None = None
     seed_admin_name: str = "Initial Admin"
+    # Opt-in recovery switch: re-applies the seed password/role to an existing admin on startup.
+    seed_admin_reset: bool = False
     app_base_url: str = "http://localhost:8000"
     smtp_host: str | None = None
     smtp_port: int = 587

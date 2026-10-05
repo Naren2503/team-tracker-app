@@ -46,4 +46,8 @@ def seed_reference_data(db: Session) -> None:
         admin_role = db.execute(select(Role).where(Role.name == "Admin")).scalar_one()
         if not existing:
             db.add(User(email=settings.seed_admin_email.lower(), display_name=settings.seed_admin_name, password_hash=hash_password(settings.seed_admin_password), role_id=admin_role.id, active=True))
+        elif settings.seed_admin_reset:
+            existing.password_hash = hash_password(settings.seed_admin_password)
+            existing.role_id = admin_role.id
+            existing.active = True
     db.commit()
